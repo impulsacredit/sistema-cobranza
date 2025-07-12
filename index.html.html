@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Cobranza - Acceso</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+        }
+
+        /* PARTÍCULAS ANIMADAS */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { left: 20%; animation-delay: 0s; width: 20px; height: 20px; }
+        .particle:nth-child(2) { left: 40%; animation-delay: 1s; width: 15px; height: 15px; }
+        .particle:nth-child(3) { left: 60%; animation-delay: 2s; width: 25px; height: 25px; }
+        .particle:nth-child(4) { left: 80%; animation-delay: 3s; width: 18px; height: 18px; }
+        .particle:nth-child(5) { left: 10%; animation-delay: 4s; width: 22px; height: 22px; }
+        .particle:nth-child(6) { left: 70%; animation-delay: 2.5s; width: 16px; height: 16px; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10%, 90% { opacity: 1; }
+            50% { transform: translateY(-100px) rotate(180deg); }
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .login-container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* PANEL IZQUIERDO - BRANDING */
+        .branding-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: slideInLeft 1s ease-out;
+        }
+
+        .logo-icon {
+            font-size: 5rem;
+            background: linear-gradient(45deg, #fff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .brand-title {
+            font-size: 3rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 1rem;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .brand-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 300;
+            text-align: center;
+            line-height: 1.6;
+            max-width: 400px;
+        }
+
+        .features-list {
+            margin-top: 3rem;
+            text-align: left;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            animation: slideInLeft 1s ease-out;
+        }
+
+        .feature-item:nth-child(1) { animation-delay: 0.2s; }
+        .feature-item:nth-child(2) { animation-delay: 0.4s; }
+        .feature-item:nth-child(3) { animation-delay: 0.6s; }
+        .feature-item:nth-child(4) { animation-delay: 0.8s; }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            color: #ffd700;
+        }
+
+        /* PANEL DERECHO - LOGIN */
+        .login-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form-container {
+            width: 100%;
+            max-width: 400px;
+            animation: slideInRight 1s ease-out;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .login-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-description {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        /* FORMULARIO */
+        .form-group {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus + .input-icon {
+            color: #667eea;
+        }
+
+        /* BOTÓN LOGIN */
+        .login-button {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .login-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-button:active {
+            transform: translateY(-1px);
+        }
+
+        .login-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-button:hover::before {
+            left: 100%;
+        }
+
+        /* LOADING STATE */
+        .login-button.loading {
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        .login-button.loading .spinner {
+            display: inline-block;
+        }
+
+        /* MENSAJES */
+        .message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border-left: 4px solid #f56565;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #48bb78;
+        }
+
+        /* FOOTER */
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .forgot-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-link:hover {
+            color: #5a67d8;
+            text-decoration: underline;
+        }
+
+        /* ANIMACIONES */
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .login-container {
+                flex-direction: column;
+            }
+
+            .branding-panel {
+                padding: 2rem;
+                min-height: 40vh;
+            }
+
+            .brand-title {
+                font-size: 2rem;
+            }
+
+            .features-list {
+                display: none;
+            }
+
+            .login-panel {
+                padding: 1rem;
+            }
+
+            .login-title {
+                font-size: 2rem;
+            }
+        }
+
+        /* TEMA NOCTURNO */
+        .night-mode {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- PARTÍCULAS ANIMADAS -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- BOTÓN TEMA -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="login-container">
+        <!-- PANEL IZQUIERDO - BRANDING -->
+        <div class="branding-panel">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h1 class="brand-title">CobraSystem</h1>
+                <p class="brand-subtitle">
+                    El sistema de cobranza más avanzado del mercado. 
+                    Gestiona tus préstamos con inteligencia artificial y automatización total.
+                </p>
+            </div>
+
+            <div class="features-list">
+                <div class="feature-item">
+                    <i class="fas fa-shield-alt feature-icon"></i>
+                    <span>Seguridad bancaria</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-robot feature-icon"></i>
+                    <span>Automatización inteligente</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-mobile-alt feature-icon"></i>
+                    <span>WhatsApp integrado</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-chart-bar feature-icon"></i>
+                    <span>Reportes en tiempo real</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL DERECHO - LOGIN -->
+        <div class="login-panel">
+            <div class="login-form-container">
+                <div class="login-header">
+                    <h2 class="login-title">Bienvenido</h2>
+                    <p class="login-description">Ingresa a tu sistema de cobranza</p>
+                </div>
+
+                <!-- MENSAJES -->
+                <div id="message-container"></div>
+
+                <!-- FORMULARIO -->
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" for="username">Usuario</label>
+                        <div class="input-container">
+                            <input 
+                                type="text" 
+                                id="username" 
+                                class="form-input" 
+                                placeholder="Ingresa tu usuario"
+                                autocomplete="username"
+                                required
+                            >
+                            <i class="fas fa-user input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Contraseña</label>
+                        <div class="input-container">
+                            <input 
+                                type="password" 
+                                id="password" 
+                                class="form-input" 
+                                placeholder="Ingresa tu contraseña"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <i class="fas fa-lock input-icon"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="login-button" id="loginButton">
+                        <div class="spinner"></div>
+                        <span id="button-text">Acceder al Sistema</span>
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    <p>¿Problemas para acceder? <a href="#" class="forgot-link" onclick="mostrarAyuda()">Contacta soporte</a></p>
+                    <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.7;">
+                        <strong>Usuario de prueba:</strong> duvan<br>
+                        <strong>Contraseña:</strong> Ecuador2024
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let currentTheme = 'light';
+        let supabase = null;
+        let isFirstTime = false;
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar configuración de Supabase
+            checkSupabaseConfig();
+            
+            // Agregar efectos de typing
+            typeWriter();
+            
+            // Agregar eventos de formulario
+            setupFormEvents();
+            
+            // Aplicar tema guardado
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                currentTheme = savedTheme;
+                applyTheme();
+            }
+        });
+
+        // VERIFICAR CONFIGURACIÓN DE SUPABASE
+        function checkSupabaseConfig() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                isFirstTime = true;
+                showConfigurationModal();
+            } else {
+                // Inicializar Supabase
+                try {
+                    supabase = window.supabase.createClient(url, key);
+                    showMessage('Sistema listo para usar', 'success');
+                } catch (error) {
+                    showMessage('Error en configuración guardada. Reconfigura Supabase.', 'error');
+                    isFirstTime = true;
+                    setTimeout(() => showConfigurationModal(), 2000);
+                }
+            }
+        }
+
+        // MODAL DE CONFIGURACIÓN SUPABASE
+        function showConfigurationModal() {
+            const modal = document.createElement('div');
+            modal.id = 'config-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    padding: 3rem;
+                    border-radius: 20px;
+                    max-width: 500px;
+                    width: 90%;
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+                    transform: scale(0.9);
+                    transition: transform 0.3s ease;
+                ">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <div style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h2 style="color: #2d3748; font-size: 1.8rem; margin-bottom: 0.5rem;">
+                            Configuración Inicial
+                        </h2>
+                        <p style="color: #718096; font-size: 1rem;">
+                            Conecta tu sistema con Supabase (solo una vez)
+                        </p>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2d3748;">
+                            URL del Proyecto Supabase:
+                        </label>
+                        <input 
+                            type="text" 
+                            id="modalSupabaseUrl" 
+                            placeholder="https://tu-proyecto.supabase.co"
+                            style="
+                                width: 100%; 
+                                padding: 12px; 
+                                border: 2px solid #e2e8f0; 
+                                border-radius: 10px;
+                                font-size: 1rem;
+                                transition: border-color 0.3s ease;
+                            "
+                        >
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2d3748;">
+                            Anon Key (Clave Pública):
+                        </label>
+                        <input 
+                            type="password" 
+                            id="modalSupabaseKey" 
+                            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                            style="
+                                width: 100%; 
+                                padding: 12px; 
+                                border: 2px solid #e2e8f0; 
+                                border-radius: 10px;
+                                font-size: 1rem;
+                                transition: border-color 0.3s ease;
+                            "
+                        >
+                        <small style="color: #718096; font-size: 0.8rem;">
+                            💡 Encuentra estas credenciales en tu proyecto Supabase → Settings → API
+                        </small>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <button 
+                            onclick="saveSupabaseConfig()" 
+                            style="
+                                background: linear-gradient(135deg, #667eea, #764ba2);
+                                color: white;
+                                border: none;
+                                padding: 12px 30px;
+                                border-radius: 10px;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                                margin-right: 10px;
+                                transition: transform 0.3s ease;
+                            "
+                            onmouseover="this.style.transform='translateY(-2px)'"
+                            onmouseout="this.style.transform='translateY(0)'"
+                        >
+                            <i class="fas fa-save"></i> Guardar y Continuar
+                        </button>
+                    </div>
+                    
+                    <div style="
+                        background: #ebf8ff; 
+                        padding: 15px; 
+                        border-radius: 10px; 
+                        margin-top: 1.5rem;
+                        border-left: 4px solid #4299e1;
+                    ">
+                        <strong style="color: #2a69ac;">💡 ¿Cómo obtener estas credenciales?</strong>
+                        <ol style="margin: 10px 0; color: #2a69ac; font-size: 0.9rem;">
+                            <li>Ve a tu proyecto en supabase.com</li>
+                            <li>Clic en "Settings" → "API"</li>
+                            <li>Copia "Project URL" y "anon public"</li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Animación de entrada
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.firstElementChild.style.transform = 'scale(1)';
+            }, 100);
+
+            // Estilo para inputs focus
+            const inputs = modal.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.style.borderColor = '#667eea';
+                    this.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                });
+                input.addEventListener('blur', function() {
+                    this.style.borderColor = '#e2e8f0';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        }
+
+        // GUARDAR CONFIGURACIÓN SUPABASE
+        async function saveSupabaseConfig() {
+            const url = document.getElementById('modalSupabaseUrl').value.trim();
+            const key = document.getElementById('modalSupabaseKey').value.trim();
+            
+            if (!url || !key) {
+                alert('Por favor completa ambos campos');
+                return;
+            }
+            
+            if (!url.includes('supabase.co')) {
+                alert('La URL debe ser de Supabase (debe contener supabase.co)');
+                return;
+            }
+
+            try {
+                // Mostrar loading en el botón
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Probando conexión...';
+                button.disabled = true;
+
+                // Probar conexión
+                supabase = window.supabase.createClient(url, key);
+                
+                // Test simple - verificar acceso a tabla clientes
+                const { data, error } = await supabase
+                    .from('clientes')
+                    .select('count', { count: 'exact', head: true });
+
+                if (error) {
+                    throw new Error('No se puede conectar a las tablas: ' + error.message);
+                }
+
+                // Guardar credenciales
+                localStorage.setItem('supabaseUrl', url);
+                localStorage.setItem('supabaseKey', key);
+                localStorage.setItem('sistemaConfigurado', 'true');
+
+                // Cerrar modal
+                const modal = document.getElementById('config-modal');
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+
+                // Mostrar éxito
+                showMessage('¡Configuración exitosa! Sistema conectado a Supabase', 'success');
+                isFirstTime = false;
+
+            } catch (error) {
+                alert('Error de conexión: ' + error.message + '\n\nVerifica tus credenciales e intenta nuevamente.');
+                
+                // Restaurar botón
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // EFECTO TYPING EN EL TÍTULO
+        function typeWriter() {
+            const title = document.querySelector('.brand-title');
+            const text = 'CobraSystem';
+            title.textContent = '';
+            
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    title.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, 150);
+                }
+            }
+            
+            setTimeout(type, 1000);
+        }
+
+        // CONFIGURAR EVENTOS DEL FORMULARIO
+        function setupFormEvents() {
+            const form = document.getElementById('loginForm');
+            const inputs = document.querySelectorAll('.form-input');
+
+            // Evento de envío del formulario
+            form.addEventListener('submit', handleLogin);
+
+            // Efectos de focus en inputs
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.classList.add('focused');
+                });
+
+                input.addEventListener('blur', function() {
+                    this.parentElement.classList.remove('focused');
+                });
+
+                // Enter en cualquier input
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        form.dispatchEvent(new Event('submit'));
+                    }
+                });
+            });
+        }
+
+        // MANEJAR LOGIN
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            // Verificar que Supabase esté configurado
+            if (!supabase) {
+                showMessage('Sistema no configurado. Configura Supabase primero.', 'error');
+                setTimeout(() => showConfigurationModal(), 2000);
+                return;
+            }
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const button = document.getElementById('loginButton');
+            const buttonText = document.getElementById('button-text');
+
+            // Validaciones básicas
+            if (!username || !password) {
+                showMessage('Por favor completa todos los campos', 'error');
+                return;
+            }
+
+            // Mostrar loading
+            button.classList.add('loading');
+            buttonText.textContent = 'Verificando acceso...';
+
+            try {
+                // Verificar conexión a Supabase
+                const { data: testConnection } = await supabase
+                    .from('clientes')
+                    .select('count', { count: 'exact', head: true });
+
+                // Simular delay de autenticación
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Verificar credenciales (por ahora hardcodeadas)
+                if (username === 'duvan' && password === 'Ecuador2024') {
+                    // LOGIN EXITOSO
+                    showMessage('¡Acceso autorizado! Conectando con base de datos...', 'success');
+                    buttonText.textContent = 'Cargando sistema...';
+                    
+                    // Guardar datos de sesión
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('loginTime', new Date().toISOString());
+
+                    // Verificar datos del sistema
+                    try {
+                        const { count: totalClientes } = await supabase
+                            .from('clientes')
+                            .select('*', { count: 'exact', head: true });
+
+                        showMessage(`✅ Sistema cargado: ${totalClientes || 0} clientes encontrados`, 'success');
+                        
+                        setTimeout(() => {
+                            showMessage('🚀 Login exitoso! Preparando dashboard...', 'success');
+                            
+                            // En lugar de redirección automática, dar instrucciones claras
+                            setTimeout(() => {
+                                alert(`🎉 ¡LOGIN EXITOSO!\n\n✅ Usuario: ${username}\n✅ Supabase conectado\n✅ ${totalClientes || 0} clientes en base de datos\n\n📋 SIGUIENTE PASO:\n▶️ Abre el archivo: dashboard-v1.html\n\n💡 Tip: Crea un acceso directo al dashboard en tu escritorio para acceso rápido.`);
+                            }, 1000);
+                        }, 1500);
+
+                    } catch (dbError) {
+                        showMessage('⚠️ Login exitoso, pero hay problemas con la base de datos', 'error');
+                        console.error('Database error:', dbError);
+                    }
+
+                } else {
+                    // CREDENCIALES INCORRECTAS
+                    showMessage('Usuario o contraseña incorrectos', 'error');
+                    
+                    // Efecto de shake
+                    button.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        button.style.animation = '';
+                    }, 500);
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                if (error.message.includes('relation') || error.message.includes('table')) {
+                    showMessage('Error: Tablas no encontradas. Verifica tu configuración de Supabase.', 'error');
+                } else {
+                    showMessage('Error de conexión con Supabase. Verifica tu configuración.', 'error');
+                }
+                
+            } finally {
+                // Restaurar botón después de un tiempo
+                setTimeout(() => {
+                    button.classList.remove('loading');
+                    buttonText.textContent = 'Acceder al Sistema';
+                }, 2000);
+            }
+        }
+
+        // MOSTRAR MENSAJES
+        function showMessage(text, type) {
+            const container = document.getElementById('message-container');
+            
+            // Limpiar mensajes anteriores
+            container.innerHTML = '';
+            
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.innerHTML = `
+                <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                ${text}
+            `;
+            
+            container.appendChild(message);
+            
+            // Mostrar con animación
+            setTimeout(() => {
+                message.classList.add('show');
+            }, 100);
+
+            // Auto-ocultar después de 5 segundos (excepto success)
+            if (type === 'error') {
+                setTimeout(() => {
+                    message.classList.remove('show');
+                    setTimeout(() => {
+                        if (message.parentNode) {
+                            message.parentNode.removeChild(message);
+                        }
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        // CAMBIAR TEMA
+        function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme();
+            localStorage.setItem('theme', currentTheme);
+        }
+
+        function applyTheme() {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            
+            if (currentTheme === 'dark') {
+                body.classList.add('night-mode');
+                icon.className = 'fas fa-sun';
+            } else {
+                body.classList.remove('night-mode');
+                icon.className = 'fas fa-moon';
+            }
+        }
+
+        // MOSTRAR AYUDA
+        function mostrarAyuda() {
+            alert(`💬 Soporte Técnico\n\nSi tienes problemas para acceder:\n\n📧 Email: soporte@cobrasystem.com\n📱 WhatsApp: +593 987 654 321\n🕐 Horarios: 8AM - 6PM\n\n🔑 Credenciales de prueba:\nUsuario: duvan\nContraseña: Ecuador2024`);
+        }
+
+        // ANIMACIÓN DE SHAKE PARA ERRORES
+        const shakeCSS = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = shakeCSS;
+        document.head.appendChild(style);
+
+        // EFECTOS DE PARTÍCULAS INTERACTIVAS
+        document.addEventListener('mousemove', function(e) {
+            const particles = document.querySelectorAll('.particle');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            particles.forEach((particle, i) => {
+                const speed = (i + 1) * 0.1;
+                const xPos = x * speed * 50;
+                const yPos = y * speed * 50;
+                
+                particle.style.transform = `translate(${xPos}px, ${yPos}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
