@@ -1022,12 +1022,12 @@
             alert(`🚀 Próximamente: ${modulo}\n\nEste módulo estará disponible en las siguientes versiones del sistema.`);
         }
 
-        function logout() {
-            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-                localStorage.removeItem('userLoggedIn');
-                localStorage.removeItem('username');
-                localStorage.removeItem('loginTime');
-                window.location.href = 'login.html';
+       function logout() {
+    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+        localStorage.removeItem('userLoggedIn');
+        localStorage.removeItem('username');
+        localStorage.removeItem('loginTime');
+        window.location.href = './';
             }
         }
 
