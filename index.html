@@ -873,11 +873,11 @@
 
                         showMessage(`✅ Sistema cargado: ${totalClientes || 0} clientes encontrados`, 'success');
                         
-                        setTimeout(() => {
+          setTimeout(() => {
     showMessage('🚀 Redirigiendo al dashboard...', 'success');
     
     setTimeout(() => {
-        window.location.href = 'dashboard.html';  // ← ESTA ES LA SOLUCIÓN
+        window.location.href = 'dashboard.html';
     }, 1000);
 }, 1500);
 
