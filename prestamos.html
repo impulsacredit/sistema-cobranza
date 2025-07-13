@@ -1384,21 +1384,23 @@
                 const fechaInicio = new Date(prestamo.fecha_inicio);
                 
                 for (let i = 1; i <= prestamo.numero_cuotas; i++) {
-                    const fechaVencimiento = new Date(fechaInicio);
-                    
-                    switch (prestamo.frecuencia_pago) {
-                        case 'diario':
-                            fechaVencimiento.setDate(fechaInicio.getDate() + i);
-                            break;
-                        case 'semanal':
-                            fechaVencimiento.setDate(fechaInicio.getDate() + (i * 7));
-                            break;
-                        case 'quincenal':
-                            fechaVencimiento.setDate(fechaInicio.getDate() + (i * 15));
-                            break;
-                        case 'mensual':
-                            fechaVencimiento.setMonth(fechaInicio.getMonth() + i);
-                            break;
+    const fechaVencimiento = new Date(fechaInicio);
+    
+    switch (prestamo.frecuencia_pago) {
+        case 'diario':
+            fechaVencimiento.setDate(fechaVencimiento.getDate() + i);  
+            break;
+        case 'semanal':
+            fechaVencimiento.setDate(fechaVencimiento.getDate() + (i * 7));
+            break;
+        case 'quincenal':
+            fechaVencimiento.setDate(fechaVencimiento.getDate() + (i * 15));
+            break;
+        case 'mensual':
+            fechaVencimiento.setMonth(fechaVencimiento.getMonth() + i);
+            break;
+    }
+}
                     }
                     
                     cuotas.push({
