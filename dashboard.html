@@ -832,11 +832,11 @@
                 // Saldo en caja
                 const { data: saldoCajaData } = await supabase
                     .from('movimientos_caja')
-                    .select('saldo_actual')
+                    .select('saldo_posterior')
                     .order('created_at', { ascending: false })
                     .limit(1);
 
-                const saldoCaja = saldoCajaData?.[0]?.saldo_actual || 0;
+                const saldoCaja = saldoCajaData?.[0]?.saldo_posterior || 0;
 
                 // Actualizar UI
                 document.getElementById('totalClientes').textContent = totalClientes || 0;
