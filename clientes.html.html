@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - Sistema de Cobranza</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title-section {
+            flex: 1;
+        }
+
+        .page-title {
+            font-size: 2.8rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        /* ESTADÍSTICAS RÁPIDAS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.primary { border-left-color: #667eea; }
+        .stat-card.success { border-left-color: #48bb78; }
+        .stat-card.warning { border-left-color: #ed8936; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* BARRA DE BÚSQUEDA Y FILTROS */
+        .filters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #718096;
+        }
+
+        /* TABLA DE CLIENTES */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #2d3748;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .client-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .client-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .client-name {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .client-cedula {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background: #e6f3ff;
+            color: #0066cc;
+        }
+
+        .btn-edit:hover {
+            background: #cce7ff;
+        }
+
+        .btn-delete {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        .btn-delete:hover {
+            background: #ffcccc;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            background: #f1f5f9;
+            color: #4a5568;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #4a5568;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        /* LOADING Y ESTADOS */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #718096;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        /* NOTIFICACIONES */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 700px;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                CobraSystem
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="clientes.html" class="nav-link active"><i class="fas fa-users"></i> Clientes</a></li>
+                <li><a href="#" class="nav-link" onclick="proximamente('Préstamos')"><i class="fas fa-handshake"></i> Préstamos</a></li>
+                <li><a href="#" class="nav-link" onclick="proximamente('Pagos')"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="#" class="nav-link" onclick="proximamente('Reportes')"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+            </ul>
+
+            <div class="navbar-user">
+                <span><i class="fas fa-user-circle"></i> <span id="username">Duvan</span></span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">Gestión de Clientes</h1>
+                <p class="page-subtitle">Administra todos tus clientes del sistema de cobranza</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-primary" onclick="openAddClientModal()">
+                    <i class="fas fa-plus"></i> Nuevo Cliente
+                </button>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS RÁPIDAS -->
+        <div class="stats-row">
+            <div class="stat-card primary">
+                <div class="stat-value" id="totalClientes">0</div>
+                <div class="stat-label">Total Clientes</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value" id="clientesActivos">0</div>
+                <div class="stat-label">Con Créditos Activos</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-value" id="clientesNuevos">0</div>
+                <div class="stat-label">Nuevos Este Mes</div>
+            </div>
+        </div>
+
+        <!-- FILTROS Y BÚSQUEDA -->
+        <div class="filters-section">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput"
+                    placeholder="Buscar por nombre o cédula..."
+                    oninput="filterClientes()"
+                >
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loadingClientes" class="loading">
+            <div class="spinner"></div>
+            <div>
+                <h3>Cargando clientes...</h3>
+                <p>Obteniendo datos de Supabase</p>
+            </div>
+        </div>
+
+        <!-- TABLA DE CLIENTES -->
+        <div id="clientesContainer" class="table-container" style="display: none;">
+            <div class="table-header">
+                <h3 class="table-title">Lista de Clientes</h3>
+                <span id="clientesCount">0 clientes</span>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Teléfono</th>
+                        <th>Dirección</th>
+                        <th>Fecha Registro</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="clientesTableBody">
+                    <!-- Se llena dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ESTADO VACÍO -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-users empty-icon"></i>
+            <h3>No hay clientes registrados</h3>
+            <p>Comienza agregando tu primer cliente al sistema</p>
+            <button class="btn-primary" onclick="openAddClientModal()" style="margin-top: 1rem;">
+                <i class="fas fa-plus"></i> Agregar Primer Cliente
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL AGREGAR/EDITAR CLIENTE -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nuevo Cliente</h3>
+                <button class="btn-close" onclick="closeClientModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="clientForm" onsubmit="saveClient(event)">
+                <div class="form-group">
+                    <label class="form-label" for="cedula">Cédula *</label>
+                    <input type="text" id="cedula" name="cedula" class="form-input" required maxlength="10">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="nombre_completo">Nombre Completo *</label>
+                    <input type="text" id="nombre_completo" name="nombre_completo" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="numero_celular">Número Celular *</label>
+                    <input type="tel" id="numero_celular" name="numero_celular" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="direccion_completa">Dirección Completa *</label>
+                    <textarea id="direccion_completa" name="direccion_completa" class="form-textarea" required></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeClientModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" id="saveButton">
+                        <i class="fas fa-save"></i> Guardar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let clientes = [];
+        let filteredClientes = [];
+        let editingClientId = null;
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            if (!localStorage.getItem('userLoggedIn')) {
+                window.location.href = './';
+                return;
+            }
+
+            // Mostrar usuario
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('username').textContent = username;
+
+            // Inicializar Supabase
+            initSupabase();
+        });
+
+        // CONFIGURAR SUPABASE
+        function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
+                setTimeout(() => {
+                    window.location.href = './';
+                }, 2000);
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
+                return;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            loadClientes();
+        }
+
+        // CARGAR TODOS LOS CLIENTES
+        async function loadClientes() {
+            try {
+                document.getElementById('loadingClientes').style.display = 'flex';
+                document.getElementById('clientesContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+
+                const { data, error } = await supabase
+                    .from('clientes')
+                    .select('*')
+                    .order('fecha_registro', { ascending: false });
+
+                if (error) throw error;
+
+                clientes = data || [];
+                filteredClientes = [...clientes];
+                
+                updateStats();
+                renderClientes();
+                
+                document.getElementById('loadingClientes').style.display = 'none';
+                
+                if (clientes.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    document.getElementById('clientesContainer').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error cargando clientes:', error);
+                document.getElementById('loadingClientes').style.display = 'none';
+                showNotification('Error cargando clientes: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS
+        async function updateStats() {
+            try {
+                // Total clientes
+                document.getElementById('totalClientes').textContent = clientes.length;
+
+                // Clientes con créditos activos
+                const { count: clientesActivos } = await supabase
+                    .from('creditos')
+                    .select('cliente_id', { count: 'exact', head: true })
+                    .eq('estado', 'activo');
+
+                document.getElementById('clientesActivos').textContent = clientesActivos || 0;
+
+                // Clientes nuevos este mes
+                const inicioMes = new Date();
+                inicioMes.setDate(1);
+                inicioMes.setHours(0, 0, 0, 0);
+
+                const clientesNuevos = clientes.filter(cliente => 
+                    new Date(cliente.fecha_registro) >= inicioMes
+                ).length;
+
+                document.getElementById('clientesNuevos').textContent = clientesNuevos;
+
+            } catch (error) {
+                console.error('Error actualizando estadísticas:', error);
+            }
+        }
+
+        // RENDERIZAR TABLA DE CLIENTES
+        function renderClientes() {
+            const tbody = document.getElementById('clientesTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('clientesCount').textContent = 
+                `${filteredClientes.length} cliente${filteredClientes.length !== 1 ? 's' : ''}`;
+
+            filteredClientes.forEach(cliente => {
+                const row = document.createElement('tr');
+                
+                // Obtener iniciales para avatar
+                const initials = cliente.nombre_completo
+                    .split(' ')
+                    .map(name => name.charAt(0))
+                    .join('')
+                    .substring(0, 2)
+                    .toUpperCase();
+
+                // Formatear fecha
+                const fechaRegistro = new Date(cliente.fecha_registro).toLocaleDateString('es-EC');
+
+                row.innerHTML = `
+                    <td>
+                        <div class="client-info">
+                            <div class="client-avatar">${initials}</div>
+                            <div>
+                                <div class="client-name">${cliente.nombre_completo}</div>
+                                <div class="client-cedula">CI: ${cliente.cedula}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${cliente.numero_celular}</td>
+                    <td>${cliente.direccion_completa}</td>
+                    <td>${fechaRegistro}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-edit" onclick="editClient('${cliente.id}')" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteClient('${cliente.id}', '${cliente.nombre_completo}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // FILTRAR CLIENTES
+        function filterClientes() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredClientes = clientes.filter(cliente => 
+                cliente.nombre_completo.toLowerCase().includes(searchTerm) ||
+                cliente.cedula.includes(searchTerm) ||
+                cliente.numero_celular.includes(searchTerm)
+            );
+            
+            renderClientes();
+        }
+
+        // ABRIR MODAL NUEVO CLIENTE
+        function openAddClientModal() {
+            editingClientId = null;
+            document.getElementById('modalTitle').textContent = 'Nuevo Cliente';
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Guardar Cliente';
+            document.getElementById('clientForm').reset();
+            document.getElementById('clientModal').classList.add('show');
+        }
+
+        // EDITAR CLIENTE
+        function editClient(clientId) {
+            const cliente = clientes.find(c => c.id === clientId);
+            if (!cliente) return;
+
+            editingClientId = clientId;
+            document.getElementById('modalTitle').textContent = 'Editar Cliente';
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Actualizar Cliente';
+            
+            // Llenar formulario
+            document.getElementById('cedula').value = cliente.cedula;
+            document.getElementById('nombre_completo').value = cliente.nombre_completo;
+            document.getElementById('numero_celular').value = cliente.numero_celular;
+            document.getElementById('direccion_completa').value = cliente.direccion_completa;
+            
+            document.getElementById('clientModal').classList.add('show');
+        }
+
+        // CERRAR MODAL
+        function closeClientModal() {
+            document.getElementById('clientModal').classList.remove('show');
+            document.getElementById('clientForm').reset();
+            editingClientId = null;
+        }
+
+        // GUARDAR CLIENTE (NUEVO O EDITAR)
+        async function saveClient(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clientData = {
+                cedula: formData.get('cedula').trim(),
+                nombre_completo: formData.get('nombre_completo').trim(),
+                numero_celular: formData.get('numero_celular').trim(),
+                direccion_completa: formData.get('direccion_completa').trim()
+            };
+
+            // Validaciones
+            if (!validateClientData(clientData)) {
+                return;
+            }
+
+            try {
+                document.getElementById('saveButton').disabled = true;
+                document.getElementById('saveButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+                let result;
+                
+                if (editingClientId) {
+                    // Actualizar cliente existente
+                    result = await supabase
+                        .from('clientes')
+                        .update(clientData)
+                        .eq('id', editingClientId);
+                } else {
+                    // Crear nuevo cliente
+                    result = await supabase
+                        .from('clientes')
+                        .insert([clientData]);
+                }
+
+                if (result.error) throw result.error;
+
+                showNotification(
+                    editingClientId ? 'Cliente actualizado exitosamente' : 'Cliente creado exitosamente',
+                    'success'
+                );
+
+                closeClientModal();
+                loadClientes();
+
+            } catch (error) {
+                console.error('Error guardando cliente:', error);
+                
+                let errorMessage = 'Error guardando cliente';
+                if (error.code === '23505') {
+                    errorMessage = 'Ya existe un cliente con esa cédula';
+                }
+                
+                showNotification(errorMessage, 'error');
+            } finally {
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('saveButton').innerHTML = editingClientId ? 
+                    '<i class="fas fa-save"></i> Actualizar Cliente' : 
+                    '<i class="fas fa-save"></i> Guardar Cliente';
+            }
+        }
+
+        // VALIDAR DATOS DEL CLIENTE
+        function validateClientData(data) {
+            // Validar cédula ecuatoriana
+            if (!validateCedula(data.cedula)) {
+                showNotification('La cédula ingresada no es válida', 'error');
+                return false;
+            }
+
+            // Validar teléfono celular
+            if (!validateCelular(data.numero_celular)) {
+                showNotification('El número de celular debe tener 10 dígitos y empezar con 09', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        // VALIDAR CÉDULA ECUATORIANA
+        function validateCedula(cedula) {
+            if (!/^\d{10}$/.test(cedula)) return false;
+            
+            const digits = cedula.split('').map(Number);
+            const province = parseInt(cedula.substring(0, 2));
+            
+            if (province < 1 || province > 24) return false;
+            
+            const coefficients = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+            let sum = 0;
+            
+            for (let i = 0; i < 9; i++) {
+                let result = digits[i] * coefficients[i];
+                if (result >= 10) result -= 9;
+                sum += result;
+            }
+            
+            const verifier = sum % 10 === 0 ? 0 : 10 - (sum % 10);
+            return verifier === digits[9];
+        }
+
+        // VALIDAR CELULAR ECUATORIANO
+        function validateCelular(celular) {
+            return /^09\d{8}$/.test(celular);
+        }
+
+        // ELIMINAR CLIENTE
+        async function deleteClient(clientId, clientName) {
+            if (!confirm(`¿Estás seguro de que quieres eliminar a ${clientName}?\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            try {
+                // Verificar si el cliente tiene créditos activos
+                const { count: creditosActivos } = await supabase
+                    .from('creditos')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('cliente_id', clientId)
+                    .eq('estado', 'activo');
+
+                if (creditosActivos > 0) {
+                    showNotification('No se puede eliminar el cliente porque tiene créditos activos', 'error');
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('clientes')
+                    .delete()
+                    .eq('id', clientId);
+
+                if (error) throw error;
+
+                showNotification('Cliente eliminado exitosamente', 'success');
+                loadClientes();
+
+            } catch (error) {
+                console.error('Error eliminando cliente:', error);
+                showNotification('Error eliminando cliente: ' + error.message, 'error');
+            }
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // FUNCIONES DE NAVEGACIÓN
+        function proximamente(modulo) {
+            showNotification(`🚀 Próximamente: ${modulo}`, 'error');
+        }
+
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                window.location.href = './';
+            }
+        }
+
+        // CERRAR MODAL CON ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeClientModal();
+            }
+        });
+
+        // CERRAR MODAL CLICKEANDO FUERA
+        document.getElementById('clientModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeClientModal();
+            }
+        });
+
+        // FORMATEAR ENTRADA DE CÉDULA
+        document.getElementById('cedula').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 10);
+        });
+
+        // FORMATEAR ENTRADA DE CELULAR
+        document.getElementById('numero_celular').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 10);
+        });
+
+        // AUTO-REFRESH CADA 30 SEGUNDOS
+        setInterval(loadClientes, 30000);
+    </script>
+</body>
+</html>
