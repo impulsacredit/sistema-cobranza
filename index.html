@@ -874,13 +874,12 @@
                         showMessage(`✅ Sistema cargado: ${totalClientes || 0} clientes encontrados`, 'success');
                         
                         setTimeout(() => {
-                            showMessage('🚀 Login exitoso! Preparando dashboard...', 'success');
-                            
-                            // En lugar de redirección automática, dar instrucciones claras
-                            setTimeout(() => {
-                                alert(`🎉 ¡LOGIN EXITOSO!\n\n✅ Usuario: ${username}\n✅ Supabase conectado\n✅ ${totalClientes || 0} clientes en base de datos\n\n📋 SIGUIENTE PASO:\n▶️ Abre el archivo: dashboard.html\n\n💡 Tip: Crea un acceso directo al dashboard en tu escritorio para acceso rápido.`);
-                            }, 1000);
-                        }, 1500);
+    showMessage('🚀 Redirigiendo al dashboard...', 'success');
+    
+    setTimeout(() => {
+        window.location.href = 'dashboard.html';  // ← ESTA ES LA SOLUCIÓN
+    }, 1000);
+}, 1500);
 
                     } catch (dbError) {
                         showMessage('⚠️ Login exitoso, pero hay problemas con la base de datos', 'error');
