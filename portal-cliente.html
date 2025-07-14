@@ -897,52 +897,79 @@
             setupRealTimeUpdates();
         });
 
-        // LOGIN
-        async function login(event) {
-            event.preventDefault();
-            
-            const cedula = document.getElementById('cedula').value.trim();
-            const loginBtn = document.getElementById('loginBtn');
-            
-            // Validar cédula
-            if (!/^\d{10}$/.test(cedula)) {
-                showNotification('Por favor ingresa una cédula válida de 10 dígitos', 'error');
-                return;
-            }
+        // LOGIN CORREGIDO
+async function login(event) {
+    event.preventDefault();
+    
+    const cedula = document.getElementById('cedula').value.trim();
+    const loginBtn = document.getElementById('loginBtn');
+    
+    // Validación más flexible para cédulas internacionales
+    if (!cedula || cedula.length < 6 || cedula.length > 15) {
+        showNotification('Por favor ingresa una cédula válida (6-15 dígitos)', 'error');
+        return;
+    }
 
-            try {
-                loginBtn.disabled = true;
-                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+    try {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
 
-                // Buscar cliente en la base de datos
-                const { data: cliente, error } = await supabase
-                    .from('clientes')
-                    .select('*')
-                    .eq('cedula', cedula)
-                    .single();
+        console.log('🔍 Buscando cliente con cédula:', cedula);
 
-                if (error || !cliente) {
-                    throw new Error('Cédula no encontrada en el sistema');
-                }
+        // Buscar cliente en la base de datos
+        const { data: cliente, error } = await supabase
+            .from('clientes')
+            .select('*')
+            .eq('cedula', cedula)
+            .single();
 
-                // Guardar datos del cliente
-                clienteData = cliente;
-                localStorage.setItem('portal_client', JSON.stringify(cliente));
+        console.log('📊 Resultado búsqueda:', { cliente, error });
 
-                // Mostrar pantalla principal
-                showMainScreen();
-                await loadClientData();
-
-                showNotification(`¡Bienvenido, ${cliente.nombre_completo}!`, 'success');
-
-            } catch (error) {
-                console.error('Error en login:', error);
-                showNotification(error.message || 'Error al iniciar sesión', 'error');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar a mi Portal';
-            }
+        if (error) {
+            console.error('❌ Error Supabase:', error);
+            throw new Error('Cédula no encontrada en el sistema');
         }
+
+        if (!cliente) {
+            console.error('❌ Cliente no encontrado');
+            throw new Error('Cédula no encontrada en el sistema');
+        }
+
+        console.log('✅ Cliente encontrado:', cliente);
+
+        // Guardar datos del cliente GLOBALMENTE
+        window.clienteData = cliente;
+        clienteData = cliente;
+        
+        console.log('💾 Cliente guardado en variable global:', window.clienteData);
+        console.log('💾 Cliente guardado en variable local:', clienteData);
+        
+        // Guardar en localStorage también
+        localStorage.setItem('portal_client', JSON.stringify(cliente));
+        console.log('💾 Cliente guardado en localStorage');
+
+        // Verificar que se guardó correctamente
+        const verificacion = localStorage.getItem('portal_client');
+        console.log('🔍 Verificación localStorage:', verificacion ? JSON.parse(verificacion) : 'No encontrado');
+
+        // Mostrar pantalla principal
+        console.log('🖥️ Mostrando pantalla principal...');
+        showMainScreen();
+        
+        // Cargar datos del cliente
+        console.log('📊 Cargando datos del cliente...');
+        await loadClientData();
+
+        showNotification(`¡Bienvenido, ${cliente.nombre_completo}!`, 'success');
+
+    } catch (error) {
+        console.error('❌ Error en login:', error);
+        showNotification(error.message || 'Error al iniciar sesión', 'error');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar a mi Portal';
+    }
+}
 
         // MOSTRAR PANTALLA PRINCIPAL
         function showMainScreen() {
@@ -983,7 +1010,20 @@
                 showLoading(false);
             }
         }
-
+               // FUNCIÓN DE DEBUG - AGREGAR DESPUÉS DE loadClientData()
+function debugClientData() {
+    console.log('🔍 DEBUG - Estado actual:');
+    console.log('clienteData (local):', clienteData);
+    console.log('window.clienteData (global):', window.clienteData);
+    console.log('localStorage:', localStorage.getItem('portal_client'));
+    
+    if (clienteData) {
+        console.log('✅ Cliente ID:', clienteData.id);
+        console.log('✅ Cliente nombre:', clienteData.nombre_completo);
+    } else {
+        console.log('❌ clienteData está undefined');
+    }
+}
         // CARGAR CRÉDITOS
         async function loadCreditos() {
             const { data, error } = await supabase
