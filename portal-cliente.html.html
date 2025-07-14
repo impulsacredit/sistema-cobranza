@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal del Cliente - CobraSystem</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* HEADER PRINCIPAL */
+        .main-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .client-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* PANTALLA DE LOGIN */
+        .login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .login-title {
+            font-size: 2rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .login-subtitle {
+            color: #718096;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .main-container {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* SALUDO PERSONALIZADO */
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-message {
+            font-size: 2.2rem;
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-subtitle {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        /* TARJETAS DE RESUMEN */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .summary-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            color: #718096;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* ESTADO ESPECIAL */
+        .status-success {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-warning {
+            background: linear-gradient(45deg, #ed8936, #dd6b20);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-danger {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* SECCIONES PRINCIPALES */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* TABLA MODERNA */
+        .modern-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .modern-table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modern-table th:first-child {
+            border-radius: 15px 0 0 15px;
+        }
+
+        .modern-table th:last-child {
+            border-radius: 0 15px 15px 0;
+        }
+
+        .modern-table td {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px 20px;
+            border: none;
+            font-weight: 500;
+        }
+
+        .modern-table tr td:first-child {
+            border-radius: 15px 0 0 15px;
+        }
+
+        .modern-table tr td:last-child {
+            border-radius: 0 15px 15px 0;
+        }
+
+        .modern-table tr:hover td {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+            transition: all 0.3s ease;
+        }
+
+        /* BADGES DE ESTADO */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pagada {
+            background: linear-gradient(45deg, #c6f6d5, #9ae6b4);
+            color: #22543d;
+        }
+
+        .status-pendiente {
+            background: linear-gradient(45deg, #feebc8, #f6d55c);
+            color: #744210;
+        }
+
+        .status-vencida {
+            background: linear-gradient(45deg, #fed7d7, #fc8181);
+            color: #c53030;
+        }
+
+        .status-activo {
+            background: linear-gradient(45deg, #bee3f8, #90cdf4);
+            color: #2a4365;
+        }
+
+        .status-cancelado {
+            background: linear-gradient(45deg, #e2e8f0, #cbd5e0);
+            color: #4a5568;
+        }
+
+        /* TIMELINE MODERNA */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            background: rgba(255, 255, 255, 0.8);
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 15px;
+            border-left: 4px solid transparent;
+            background-clip: padding-box;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.3rem;
+            top: 1.5rem;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-date {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .timeline-content {
+            margin-top: 0.5rem;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-amount {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #48bb78;
+        }
+
+        /* PRÓXIMOS VENCIMIENTOS */
+        .upcoming-item {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .upcoming-item.urgent {
+            border-left-color: #f56565;
+            background: rgba(245, 101, 101, 0.1);
+        }
+
+        .upcoming-item.warning {
+            border-left-color: #ed8936;
+            background: rgba(237, 137, 54, 0.1);
+        }
+
+        .upcoming-item.normal {
+            border-left-color: #4299e1;
+            background: rgba(66, 153, 225, 0.1);
+        }
+
+        .upcoming-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .upcoming-date {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upcoming-amount {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .upcoming-days {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* NOTIFICACIONES */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.5s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+        }
+
+        /* LOADING */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+
+        /* ESTADO VACÍO */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #718096;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        /* ANIMACIONES */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+
+            .login-container {
+                padding: 2rem;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome-message {
+                font-size: 1.8rem;
+            }
+
+            .header-content {
+                padding: 0 1rem;
+            }
+
+            .client-info {
+                flex-direction: column;
+                gap: 8px;
+                font-size: 0.9rem;
+            }
+
+            .modern-table {
+                font-size: 0.9rem;
+            }
+
+            .modern-table th,
+            .modern-table td {
+                padding: 10px 15px;
+            }
+        }
+
+        /* TEMA DARK (FUTURO) */
+        @media (prefers-color-scheme: dark) {
+            /* Preparado para tema oscuro */
+        }
+
+        /* PWA STYLES */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 1rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        .install-icon {
+            font-size: 2rem;
+            color: #667eea;
+        }
+
+        .install-text {
+            flex: 1;
+        }
+
+        .install-title {
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .install-description {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .install-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .install-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .close-install {
+            background: none;
+            border: none;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- PANTALLA DE LOGIN -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container fade-in">
+            <div class="login-logo">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h1 class="login-title">Portal del Cliente</h1>
+            <p class="login-subtitle">Accede a tu estado de cuenta</p>
+            
+            <form id="loginForm" onsubmit="login(event)">
+                <div class="form-group">
+                    <label class="form-label" for="cedula">Número de Cédula</label>
+                    <input 
+                        type="text" 
+                        id="cedula" 
+                        name="cedula" 
+                        class="form-input" 
+                        placeholder="Ingresa tu cédula"
+                        required
+                        maxlength="10"
+                        pattern="[0-9]{10}"
+                        title="Ingresa una cédula válida de 10 dígitos"
+                    >
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Ingresar a mi Portal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL -->
+    <div id="mainScreen" style="display: none;">
+        <!-- HEADER -->
+        <header class="main-header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Mi Portal</span>
+                </div>
+                <div class="client-info">
+                    <div>
+                        <i class="fas fa-user"></i>
+                        <span id="clientName">Cliente</span>
+                    </div>
+                    <div>
+                        <i class="fas fa-id-card"></i>
+                        <span id="clientCedula">0000000000</span>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Salir
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="main-container">
+            <!-- SALUDO PERSONALIZADO -->
+            <div class="welcome-section fade-in">
+                <div class="welcome-message">¡Hola, <span id="welcomeName">Cliente</span>!</div>
+                <div class="welcome-subtitle">Este es tu estado de cuenta actualizado en tiempo real</div>
+            </div>
+
+            <!-- RESUMEN GENERAL -->
+            <div class="summary-grid fade-in">
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="summary-value status-success" id="totalCreditos">0</div>
+                    <div class="summary-label">Préstamos Activos</div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="summary-value" id="saldoPendiente">$0</div>
+                    <div class="summary-label">Saldo Pendiente</div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="summary-value status-warning" id="cuotasVencidas">0</div>
+                    <div class="summary-label">Cuotas Vencidas</div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="summary-value status-success" id="totalPagado">$0</div>
+                    <div class="summary-label">Total Pagado</div>
+                </div>
+            </div>
+
+            <!-- CONTENIDO PRINCIPAL -->
+            <div class="main-grid fade-in">
+                <!-- PRÉSTAMOS ACTIVOS -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-handshake"></i>
+                        Mis Préstamos
+                    </h3>
+                    
+                    <div id="creditosContainer">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- PRÓXIMOS VENCIMIENTOS -->
+                <div class="section-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-calendar-exclamation"></i>
+                        Próximos Vencimientos
+                    </h3>
+                    
+                    <div id="vencimientosContainer">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTORIAL DE PAGOS -->
+            <div class="section-card fade-in">
+                <h3 class="section-title">
+                    <i class="fas fa-history"></i>
+                    Historial de Pagos
+                </h3>
+                
+                <div id="pagosContainer">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="loadingScreen" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <div>
+            <h3>Cargando tu información...</h3>
+            <p>Obteniendo datos actualizados</p>
+        </div>
+    </div>
+
+    <!-- PWA INSTALL PROMPT -->
+    <div id="installPrompt" class="install-prompt">
+        <div class="install-icon">
+            <i class="fas fa-mobile-alt"></i>
+        </div>
+        <div class="install-text">
+            <div class="install-title">Instalar App</div>
+            <div class="install-description">Agrega este portal a tu pantalla de inicio</div>
+        </div>
+        <button class="install-btn" onclick="installPWA()">Instalar</button>
+        <button class="close-install" onclick="closeInstallPrompt()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let clienteData = null;
+        let deferredPrompt = null;
+
+        // CONFIGURACIÓN SUPABASE
+        function initSupabase() {
+            // Usar las mismas credenciales del sistema administrativo
+            const url = 'https://YOUR_SUPABASE_URL.supabase.co';
+            const key = 'YOUR_SUPABASE_ANON_KEY';
+            
+            if (typeof window.supabase === 'undefined') {
+                showNotification('Error: No se puede conectar al sistema', 'error');
+                return false;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            return true;
+        }
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar Supabase
+            if (!initSupabase()) return;
+            
+            // Verificar si ya está logueado
+            const savedClient = localStorage.getItem('portal_client');
+            if (savedClient) {
+                clienteData = JSON.parse(savedClient);
+                showMainScreen();
+                loadClientData();
+            }
+
+            // Configurar PWA
+            setupPWA();
+            
+            // Configurar actualización en tiempo real
+            setupRealTimeUpdates();
+        });
+
+        // LOGIN
+        async function login(event) {
+            event.preventDefault();
+            
+            const cedula = document.getElementById('cedula').value.trim();
+            const loginBtn = document.getElementById('loginBtn');
+            
+            // Validar cédula
+            if (!/^\d{10}$/.test(cedula)) {
+                showNotification('Por favor ingresa una cédula válida de 10 dígitos', 'error');
+                return;
+            }
+
+            try {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+
+                // Buscar cliente en la base de datos
+                const { data: cliente, error } = await supabase
+                    .from('clientes')
+                    .select('*')
+                    .eq('cedula', cedula)
+                    .single();
+
+                if (error || !cliente) {
+                    throw new Error('Cédula no encontrada en el sistema');
+                }
+
+                // Guardar datos del cliente
+                clienteData = cliente;
+                localStorage.setItem('portal_client', JSON.stringify(cliente));
+
+                // Mostrar pantalla principal
+                showMainScreen();
+                await loadClientData();
+
+                showNotification(`¡Bienvenido, ${cliente.nombre_completo}!`, 'success');
+
+            } catch (error) {
+                console.error('Error en login:', error);
+                showNotification(error.message || 'Error al iniciar sesión', 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar a mi Portal';
+            }
+        }
+
+        // MOSTRAR PANTALLA PRINCIPAL
+        function showMainScreen() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'block';
+            
+            // Actualizar información del cliente en header
+            document.getElementById('clientName').textContent = clienteData.nombre_completo;
+            document.getElementById('clientCedula').textContent = clienteData.cedula;
+            document.getElementById('welcomeName').textContent = clienteData.nombre_completo.split(' ')[0];
+        }
+
+        // CARGAR DATOS DEL CLIENTE
+        async function loadClientData() {
+            try {
+                showLoading(true);
+
+                // Cargar datos en paralelo
+                const [creditosData, cuotasData, pagosData] = await Promise.all([
+                    loadCreditos(),
+                    loadCuotas(),
+                    loadPagos()
+                ]);
+
+                // Actualizar resumen
+                updateSummary(creditosData, cuotasData, pagosData);
+                
+                // Renderizar secciones
+                renderCreditos(creditosData);
+                renderVencimientos(cuotasData);
+                renderPagos(pagosData);
+
+                showLoading(false);
+
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showNotification('Error cargando información: ' + error.message, 'error');
+                showLoading(false);
+            }
+        }
+
+        // CARGAR CRÉDITOS
+        async function loadCreditos() {
+            const { data, error } = await supabase
+                .from('creditos')
+                .select('*')
+                .eq('cliente_id', clienteData.id)
+                .in('estado', ['activo', 'completado'])
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        }
+
+        // CARGAR CUOTAS
+        async function loadCuotas() {
+            const { data, error } = await supabase
+                .from('cuotas')
+                .select(`
+                    *,
+                    creditos!inner (
+                        cliente_id,
+                        monto_prestamo
+                    )
+                `)
+                .eq('creditos.cliente_id', clienteData.id)
+                .order('fecha_vencimiento');
+
+            if (error) throw error;
+            return data || [];
+        }
+
+        // CARGAR PAGOS
+        async function loadPagos() {
+            const { data, error } = await supabase
+                .from('pagos')
+                .select(`
+                    *,
+                    cuotas!inner (
+                        numero_cuota,
+                        creditos!inner (
+                            cliente_id
+                        )
+                    )
+                `)
+                .eq('cuotas.creditos.cliente_id', clienteData.id)
+                .order('fecha_pago', { ascending: false })
+                .limit(10);
+
+            if (error) throw error;
+            return data || [];
+        }
+
+        // ACTUALIZAR RESUMEN
+        function updateSummary(creditos, cuotas, pagos) {
+            const creditosActivos = creditos.filter(c => c.estado === 'activo');
+            const cuotasPendientes = cuotas.filter(c => c.estado === 'pendiente');
+            const cuotasVencidas = cuotasPendientes.filter(c => new Date(c.fecha_vencimiento) < new Date());
+            
+            const saldoPendiente = cuotasPendientes.reduce((sum, c) => sum + parseFloat(c.monto_cuota), 0);
+            const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.monto_pagado), 0);
+
+            // Actualizar valores
+            document.getElementById('totalCreditos').textContent = creditosActivos.length;
+            document.getElementById('saldoPendiente').textContent = formatCurrency(saldoPendiente);
+            document.getElementById('cuotasVencidas').textContent = cuotasVencidas.length;
+            document.getElementById('totalPagado').textContent = formatCurrency(totalPagado);
+
+            // Actualizar colores según estado
+            const saldoElement = document.getElementById('saldoPendiente');
+            if (saldoPendiente > 0) {
+                saldoElement.className = 'summary-value status-warning';
+            } else {
+                saldoElement.className = 'summary-value status-success';
+            }
+
+            const vencidasElement = document.getElementById('cuotasVencidas');
+            if (cuotasVencidas.length > 0) {
+                vencidasElement.className = 'summary-value status-danger';
+            } else {
+                vencidasElement.className = 'summary-value status-success';
+            }
+        }
+
+        // RENDERIZAR CRÉDITOS
+        function renderCreditos(creditos) {
+            const container = document.getElementById('creditosContainer');
+            
+            if (creditos.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-handshake"></i></div>
+                        <h3>No tienes préstamos registrados</h3>
+                        <p>Contacta a nuestro equipo para solicitar un préstamo</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Monto</th>
+                            <th>Cuotas</th>
+                            <th>Tasa</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${creditos.map(credito => `
+                            <tr>
+                                <td>
+                                    <div style="font-weight: 700; font-size: 1.1rem;">
+                                        ${formatCurrency(credito.monto_prestamo)}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #718096;">
+                                        ${credito.frecuencia_pago}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">
+                                        ${credito.numero_cuotas} cuotas
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">
+                                        ${credito.tasa_interes}%
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-${credito.estado}">
+                                        ${credito.estado}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button onclick="verDetalleCredito('${credito.id}')" style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fas fa-eye"></i> Ver Detalle
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // RENDERIZAR VENCIMIENTOS
+        function renderVencimientos(cuotas) {
+            const container = document.getElementById('vencimientosContainer');
+            const cuotasPendientes = cuotas.filter(c => c.estado === 'pendiente');
+            
+            // Ordenar por fecha de vencimiento
+            cuotasPendientes.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
+            
+            // Tomar solo las próximas 5
+            const proximasCuotas = cuotasPendientes.slice(0, 5);
+
+            if (proximasCuotas.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-check-circle"></i></div>
+                        <h3>¡Todo al día!</h3>
+                        <p>No tienes cuotas próximas a vencer</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const hoy = new Date();
+            
+            container.innerHTML = proximasCuotas.map(cuota => {
+                const fechaVencimiento = new Date(cuota.fecha_vencimiento);
+                const diasRestantes = Math.ceil((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                
+                let urgencyClass = 'normal';
+                let urgencyText = '';
+                
+                if (diasRestantes < 0) {
+                    urgencyClass = 'urgent';
+                    urgencyText = `Vencida hace ${Math.abs(diasRestantes)} días`;
+                } else if (diasRestantes === 0) {
+                    urgencyClass = 'urgent';
+                    urgencyText = 'Vence hoy';
+                } else if (diasRestantes <= 3) {
+                    urgencyClass = 'warning';
+                    urgencyText = `Vence en ${diasRestantes} días`;
+                } else {
+                    urgencyText = `Vence en ${diasRestantes} días`;
+                }
+
+                return `
+                    <div class="upcoming-item ${urgencyClass}">
+                        <div class="upcoming-date ${urgencyClass === 'urgent' ? 'status-danger' : urgencyClass === 'warning' ? 'status-warning' : 'status-success'}">
+                            ${fechaVencimiento.toLocaleDateString('es-EC')}
+                        </div>
+                        <div class="upcoming-amount">
+                            Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)}
+                        </div>
+                        <div class="upcoming-days">
+                            ${urgencyText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // RENDERIZAR PAGOS
+        function renderPagos(pagos) {
+            const container = document.getElementById('pagosContainer');
+            
+            if (pagos.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+                        <h3>No hay pagos registrados</h3>
+                        <p>Tus pagos aparecerán aquí una vez realizados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="timeline">
+                    ${pagos.map(pago => `
+                        <div class="timeline-item">
+                            <div class="timeline-date">
+                                ${new Date(pago.fecha_pago).toLocaleDateString('es-EC')}
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">
+                                    Cuota #${pago.cuotas.numero_cuota} - ${pago.metodo_pago}
+                                </div>
+                                <div class="timeline-amount">
+                                    ${formatCurrency(pago.monto_pagado)}
+                                </div>
+                                ${pago.observaciones ? `
+                                    <div style="font-size: 0.85rem; color: #718096; margin-top: 0.5rem;">
+                                        ${pago.observaciones}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // VER DETALLE DE CRÉDITO
+        async function verDetalleCredito(creditoId) {
+            try {
+                const { data: cuotas, error } = await supabase
+                    .from('cuotas')
+                    .select('*')
+                    .eq('credito_id', creditoId)
+                    .order('numero_cuota');
+
+                if (error) throw error;
+
+                const modalContent = `
+                    <div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 2rem; max-width: 800px; margin: 2rem auto; position: relative; z-index: 1002;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
+                            <h3 style="font-size: 1.5rem; font-weight: 700; color: #2d3748;">
+                                <i class="fas fa-file-invoice-dollar"></i> Cronograma de Pagos
+                            </h3>
+                            <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; color: #718096; cursor: pointer; padding: 4px; border-radius: 50%;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cuota</th>
+                                        <th>Monto</th>
+                                        <th>Vencimiento</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${cuotas.map(cuota => `
+                                        <tr>
+                                            <td>
+                                                <div style="font-weight: 700;">#${cuota.numero_cuota}</div>
+                                            </td>
+                                            <td>
+                                                <div style="font-weight: 700; color: #2d3748;">
+                                                    ${formatCurrency(cuota.monto_cuota)}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                ${new Date(cuota.fecha_vencimiento).toLocaleDateString('es-EC')}
+                                            </td>
+                                            <td>
+                                                <span class="status-badge status-${cuota.estado}">
+                                                    ${cuota.estado}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                const modalOverlay = document.createElement('div');
+                modalOverlay.id = 'modalOverlay';
+                modalOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1001;
+                    animation: fadeIn 0.3s ease;
+                `;
+                modalOverlay.innerHTML = modalContent;
+                
+                // Cerrar modal al hacer click fuera
+                modalOverlay.addEventListener('click', function(e) {
+                    if (e.target === modalOverlay) {
+                        closeModal();
+                    }
+                });
+
+                document.body.appendChild(modalOverlay);
+
+            } catch (error) {
+                console.error('Error cargando detalle:', error);
+                showNotification('Error cargando detalle del crédito', 'error');
+            }
+        }
+
+        // CERRAR MODAL
+        function closeModal() {
+            const modal = document.getElementById('modalOverlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // CONFIGURAR ACTUALIZACIONES EN TIEMPO REAL
+        function setupRealTimeUpdates() {
+            if (!supabase || !clienteData) return;
+
+            // Escuchar cambios en créditos
+            supabase
+                .channel('creditos-changes')
+                .on('postgres_changes', 
+                    { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: 'creditos',
+                        filter: `cliente_id=eq.${clienteData.id}`
+                    },
+                    (payload) => {
+                        console.log('Cambio en créditos:', payload);
+                        loadClientData();
+                        showNotification('Tu información se ha actualizado', 'success');
+                    }
+                )
+                .subscribe();
+
+            // Escuchar cambios en cuotas
+            supabase
+                .channel('cuotas-changes')
+                .on('postgres_changes', 
+                    { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: 'cuotas'
+                    },
+                    (payload) => {
+                        // Verificar si la cuota pertenece al cliente actual
+                        if (payload.new && payload.new.credito_id) {
+                            console.log('Cambio en cuotas:', payload);
+                            loadClientData();
+                            showNotification('Estado de cuenta actualizado', 'success');
+                        }
+                    }
+                )
+                .subscribe();
+
+            // Escuchar cambios en pagos
+            supabase
+                .channel('pagos-changes')
+                .on('postgres_changes', 
+                    { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: 'pagos'
+                    },
+                    (payload) => {
+                        console.log('Nuevo pago registrado:', payload);
+                        loadClientData();
+                        showNotification('¡Nuevo pago registrado!', 'success');
+                    }
+                )
+                .subscribe();
+        }
+
+        // PWA FUNCTIONS
+        function setupPWA() {
+            // Detectar si es PWA instalable
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                document.getElementById('installPrompt').classList.add('show');
+            });
+
+            // Detectar si ya está instalado
+            window.addEventListener('appinstalled', () => {
+                deferredPrompt = null;
+                document.getElementById('installPrompt').classList.remove('show');
+                showNotification('¡App instalada correctamente!', 'success');
+            });
+        }
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuario aceptó instalar la PWA');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        function closeInstallPrompt() {
+            document.getElementById('installPrompt').classList.remove('show');
+        }
+
+        // UTILIDADES
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-EC', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingScreen').style.display = show ? 'flex' : 'none';
+        }
+
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('portal_client');
+                clienteData = null;
+                
+                // Desconectar suscripciones tiempo real
+                if (supabase) {
+                    supabase.removeAllChannels();
+                }
+                
+                document.getElementById('mainScreen').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('cedula').value = '';
+                
+                showNotification('Sesión cerrada correctamente', 'success');
+            }
+        }
+
+        // EVENTOS DE TECLADO
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // SERVICE WORKER PARA PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('ServiceWorker registrado correctamente');
+                }, function(err) {
+                    console.log('ServiceWorker falló al registrarse');
+                });
+            });
+        }
+
+    </script>
+</body>
+</html>
+                
