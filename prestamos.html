@@ -1378,8 +1378,15 @@
         }
 
         // GENERAR CUOTAS
+// GENERAR CUOTAS
 async function generateCuotas(prestamo) {
     try {
+        // ✅ PRIMERO: Eliminar cuotas existentes del mismo préstamo
+        await supabase
+            .from('cuotas')
+            .delete()
+            .eq('credito_id', prestamo.id);
+
         const cuotas = [];
         const fechaInicio = new Date(prestamo.fecha_inicio);
         
