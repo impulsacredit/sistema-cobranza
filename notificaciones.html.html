@@ -1,0 +1,1944 @@
+                        <div class="timeline-message">
+                            "Hola {cliente}, tu pago de ${monto} está vencido. Comunícate con nosotros para evitar recargos."
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCIONES RÁPIDAS -->
+                <div style="margin-top: 2rem;">
+                    <h4 style="font-weight: 600; color: #2d3748; margin-bottom: 1rem;">
+                        <i class="fas fa-bolt"></i> Acciones Rápidas
+                    </h4>
+                    <button class="btn-primary" onclick="processAutomaticReminders()" style="width: 100%; margin-bottom: 10px;">
+                        <i class="fas fa-sync-alt"></i> Procesar Recordatorios
+                    </button>
+                    <button class="btn-secondary" onclick="openTemplatesModal()" style="width: 100%; margin-bottom: 10px;">
+                        <i class="fas fa-edit"></i> Editar Templates
+                    </button>
+                    <button class="btn-secondary" onclick="viewScheduledMessages()" style="width: 100%;">
+                        <i class="fas fa-calendar-check"></i> Ver Programados
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ENVIAR MENSAJE -->
+    <div id="sendModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fab fa-whatsapp" style="color: #25d366;"></i>
+                    Enviar Mensaje WhatsApp
+                </h3>
+                <button class="btn-close" onclick="closeSendModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="sendForm" onsubmit="sendWhatsAppMessage(event)">
+                <div class="form-group">
+                    <label class="form-label" for="cliente_select">Seleccionar Cliente *</label>
+                    <select id="cliente_select" name="cliente_id" class="form-select" required onchange="loadClienteInfo()">
+                        <option value="">Seleccionar cliente...</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="clienteInfo" style="display: none;">
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <strong>Teléfono:</strong> <span id="clienteTelefono">-</span>
+                            </div>
+                            <div>
+                                <strong>Cuotas Pendientes:</strong> <span id="cuotasPendientes">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="cuota_select">Cuota Relacionada (Opcional)</label>
+                    <select id="cuota_select" name="cuota_id" class="form-select" onchange="updateMessageTemplate()">
+                        <option value="">Sin cuota específica</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="tipo_recordatorio">Tipo de Recordatorio *</label>
+                    <select id="tipo_recordatorio" name="tipo_recordatorio" class="form-select" required onchange="updateMessageTemplate()">
+                        <option value="">Seleccionar tipo...</option>
+                        <option value="previo">Recordatorio Previo</option>
+                        <option value="vencimiento">Día de Vencimiento</option>
+                        <option value="mora">Notificación de Mora</option>
+                        <option value="personalizado">Mensaje Personalizado</option>
+                    </select>
+                </div>
+
+                <!-- TEMPLATES PREDEFINIDOS -->
+                <div class="form-group" id="templatesSection" style="display: none;">
+                    <label class="form-label">Templates Predefinidos</label>
+                    <div id="templatesList">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="mensaje">Mensaje *</label>
+                    <textarea id="mensaje" name="mensaje" class="form-textarea" required 
+                              placeholder="Escribe tu mensaje aquí..." 
+                              oninput="updateCharacterCount()"></textarea>
+                    <div class="character-count">
+                        <span id="charCount">0</span>/1000 caracteres
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="fecha_programada">Programar Envío (Opcional)</label>
+                    <input type="datetime-local" id="fecha_programada" name="fecha_programada" class="form-input">
+                    <small style="color: #718096; font-size: 0.85rem;">
+                        Dejar vacío para envío inmediato
+                    </small>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn-secondary" onclick="closeSendModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" id="sendButton">
+                        <i class="fab fa-whatsapp"></i> Enviar Mensaje
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIGURACIÓN -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-cog"></i>
+                    Configuración de WhatsApp
+                </h3>
+                <button class="btn-close" onclick="closeConfigModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="configForm" onsubmit="saveConfiguration(event)">
+                <div class="form-group">
+                    <label class="form-label" for="horario_inicio">Horario de Inicio</label>
+                    <input type="time" id="horario_inicio" name="horario_inicio" class="form-input" value="08:00">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="horario_fin">Horario de Fin</label>
+                    <input type="time" id="horario_fin" name="horario_fin" class="form-input" value="18:00">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="dias_previo">Días de Anticipación para Recordatorios</label>
+                    <select id="dias_previo" name="dias_previo" class="form-select">
+                        <option value="1">1 día antes</option>
+                        <option value="2">2 días antes</option>
+                        <option value="3" selected>3 días antes</option>
+                        <option value="5">5 días antes</option>
+                        <option value="7">7 días antes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="max_intentos">Máximo de Intentos por Mensaje</label>
+                    <select id="max_intentos" name="max_intentos" class="form-select">
+                        <option value="1">1 intento</option>
+                        <option value="2">2 intentos</option>
+                        <option value="3" selected>3 intentos</option>
+                        <option value="5">5 intentos</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="intervalo_mora">Intervalo para Recordatorios de Mora (días)</label>
+                    <select id="intervalo_mora" name="intervalo_mora" class="form-select">
+                        <option value="1" selected>Diario</option>
+                        <option value="3">Cada 3 días</option>
+                        <option value="7">Semanal</option>
+                        <option value="15">Cada 15 días</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn-secondary" onclick="closeConfigModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Guardar Configuración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TEMPLATES -->
+    <div id="templatesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-edit"></i>
+                    Editar Templates de Mensajes
+                </h3>
+                <button class="btn-close" onclick="closeTemplatesModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <p style="color: #718096; font-size: 0.9rem;">
+                    Variables disponibles: <code>{cliente}</code>, <code>{monto}</code>, <code>{fecha}</code>, <code>{cuota}</code>, <code>{dias_atraso}</code>
+                </p>
+            </div>
+
+            <form id="templatesForm" onsubmit="saveTemplates(event)">
+                <div class="form-group">
+                    <label class="form-label" for="template_previo">Template Recordatorio Previo</label>
+                    <textarea id="template_previo" name="template_previo" class="form-textarea" 
+                              placeholder="Mensaje para recordatorios previos al vencimiento"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="template_vencimiento">Template Día de Vencimiento</label>
+                    <textarea id="template_vencimiento" name="template_vencimiento" class="form-textarea" 
+                              placeholder="Mensaje para el día de vencimiento"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="template_mora">Template Notificación de Mora</label>
+                    <textarea id="template_mora" name="template_mora" class="form-textarea" 
+                              placeholder="Mensaje para notificaciones de mora"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn-secondary" onclick="closeTemplatesModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Guardar Templates
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let notifications = [];
+        let filteredNotifications = [];
+        let clientes = [];
+        let cuotasPorCliente = [];
+        let templates = {
+            previo: "Hola {cliente}, te recordamos que tu cuota de ${monto} vence el {fecha}. ¡Gracias por mantenerte al día!",
+            vencimiento: "Hola {cliente}, hoy vence tu cuota de ${monto}. Puedes realizar el pago hasta las 6 PM.",
+            mora: "Hola {cliente}, tu pago de ${monto} está vencido desde hace {dias_atraso} días. Comunícate con nosotros para evitar recargos."
+        };
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            if (!localStorage.getItem('userLoggedIn')) {
+                window.location.href = './';
+                return;
+            }
+
+            // Mostrar usuario
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('username').textContent = username;
+
+            // Inicializar Supabase
+            initSupabase();
+        });
+
+        // CONFIGURAR SUPABASE
+        function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
+                setTimeout(() => {
+                    window.location.href = './';
+                }, 2000);
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
+                return;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            loadData();
+        }
+
+        // CARGAR DATOS INICIALES
+        async function loadData() {
+            try {
+                await Promise.all([
+                    loadClientes(),
+                    loadNotifications(),
+                    updateStats(),
+                    loadTemplates()
+                ]);
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showNotification('Error cargando datos: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR CLIENTES
+        async function loadClientes() {
+            try {
+                const { data, error } = await supabase
+                    .from('clientes')
+                    .select('id, nombre_completo, cedula, numero_celular')
+                    .order('nombre_completo');
+
+                if (error) throw error;
+
+                clientes = data || [];
+                
+                // Llenar select de clientes
+                const clienteSelect = document.getElementById('cliente_select');
+                clienteSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
+                
+                clientes.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    option.textContent = `${cliente.nombre_completo} (${cliente.numero_celular || 'Sin teléfono'})`;
+                    option.dataset.telefono = cliente.numero_celular || '';
+                    clienteSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error cargando clientes:', error);
+                showNotification('Error cargando clientes: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR NOTIFICACIONES
+        async function loadNotifications() {
+            try {
+                document.getElementById('loadingNotifications').style.display = 'flex';
+
+                const { data, error } = await supabase
+                    .from('recordatorios_whatsapp')
+                    .select(`
+                        *,
+                        clientes (
+                            nombre_completo,
+                            numero_celular
+                        ),
+                        cuotas (
+                            numero_cuota,
+                            monto_cuota
+                        )
+                    `)
+                    .order('fecha_envio', { ascending: false })
+                    .limit(100);
+
+                if (error) throw error;
+
+                notifications = data || [];
+                filteredNotifications = [...notifications];
+                
+                renderNotifications();
+                
+                document.getElementById('loadingNotifications').style.display = 'none';
+
+            } catch (error) {
+                console.error('Error cargando notificaciones:', error);
+                document.getElementById('loadingNotifications').style.display = 'none';
+                showNotification('Error cargando notificaciones: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS
+        async function updateStats() {
+            try {
+                const hoy = new Date().toISOString().split('T')[0];
+                
+                // Contar mensajes por estado del día
+                const mensajesHoy = notifications.filter(n => n.fecha_envio?.startsWith(hoy));
+                
+                const enviados = mensajesHoy.filter(n => n.estado_envio === 'enviado').length;
+                const pendientes = notifications.filter(n => n.estado_envio === 'pendiente').length;
+                const leidos = mensajesHoy.filter(n => n.estado_envio === 'leido').length;
+                const fallidos = mensajesHoy.filter(n => n.estado_envio === 'fallido').length;
+
+                document.getElementById('mensajesEnviados').textContent = enviados;
+                document.getElementById('mensajesPendientes').textContent = pendientes;
+                document.getElementById('mensajesLeidos').textContent = leidos;
+                document.getElementById('mensajesFallidos').textContent = fallidos;
+
+            } catch (error) {
+                console.error('Error actualizando estadísticas:', error);
+            }
+        }
+
+        // RENDERIZAR TABLA DE NOTIFICACIONES
+        function renderNotifications() {
+            const tbody = document.getElementById('notificationsTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('notificationsCount').textContent = 
+                `${filteredNotifications.length} notificación${filteredNotifications.length !== 1 ? 'es' : ''}`;
+
+            filteredNotifications.forEach(notification => {
+                const row = document.createElement('tr');
+                
+                const fechaEnvio = notification.fecha_envio ? 
+                    new Date(notification.fecha_envio).toLocaleString('es-EC') : 'No enviado';
+
+                row.innerHTML = `
+                    <td>
+                        <div style="font-weight: 600;">${notification.clientes?.nombre_completo || 'Cliente no encontrado'}</div>
+                        <div style="font-size: 0.85rem; color: #718096;">${notification.clientes?.numero_celular || 'Sin teléfono'}</div>
+                    </td>
+                    <td>
+                        <span class="tipo-badge tipo-${notification.tipo_recordatorio}">${formatTipoRecordatorio(notification.tipo_recordatorio)}</span>
+                    </td>
+                    <td>
+                        <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                             title="${notification.mensaje || ''}">
+                            ${notification.mensaje || '-'}
+                        </div>
+                    </td>
+                    <td>${fechaEnvio}</td>
+                    <td>
+                        <span class="status-badge status-${notification.estado_envio || 'pendiente'}">
+                            ${formatEstadoEnvio(notification.estado_envio)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-whatsapp" onclick="sendViaWhatsApp('${notification.clientes?.numero_celular}', '${encodeURIComponent(notification.mensaje)}')" title="Abrir WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                            ${notification.estado_envio === 'fallido' ? `
+                                <button class="btn-action btn-retry" onclick="retryMessage('${notification.id}')" title="Reintentar">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            ` : ''}
+                            <button class="btn-action btn-delete" onclick="deleteNotification('${notification.id}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // CARGAR INFORMACIÓN DEL CLIENTE SELECCIONADO
+        async function loadClienteInfo() {
+            const clienteId = document.getElementById('cliente_select').value;
+            const clienteInfo = document.getElementById('clienteInfo');
+            
+            if (!clienteId) {
+                clienteInfo.style.display = 'none';
+                document.getElementById('cuota_select').innerHTML = '<option value="">Sin cuota específica</option>';
+                return;
+            }
+
+            try {
+                const cliente = clientes.find(c => c.id === clienteId);
+                
+                // Mostrar información del cliente
+                document.getElementById('clienteTelefono').textContent = cliente?.numero_celular || 'Sin teléfono';
+                
+                // Cargar cuotas pendientes del cliente
+                const { data: cuotas, error } = await supabase
+                    .from('cuotas')
+                    .select(`
+                        *,
+                        creditos!inner (
+                            cliente_id
+                        )
+                    `)
+                    .eq('estado', 'pendiente')
+                    .eq('creditos.cliente_id', clienteId)
+                    .order('fecha_vencimiento');
+
+                if (error) throw error;
+
+                cuotasPorCliente = cuotas || [];
+                document.getElementById('cuotasPendientes').textContent = cuotasPorCliente.length;
+                
+                // Llenar select de cuotas
+                const cuotaSelect = document.getElementById('cuota_select');
+                cuotaSelect.innerHTML = '<option value="">Sin cuota específica</option>';
+                
+                cuotasPorCliente.forEach(cuota => {
+                    const option = document.createElement('option');
+                    option.value = cuota.id;
+                    option.textContent = `Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - Vence: ${new Date(cuota.fecha_vencimiento).toLocaleDateString('es-EC')}`;
+                    option.dataset.monto = cuota.monto_cuota;
+                    option.dataset.fecha = cuota.fecha_vencimiento;
+                    option.dataset.numero = cuota.numero_cuota;
+                    cuotaSelect.appendChild(option);
+                });
+                
+                clienteInfo.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error cargando información del cliente:', error);
+                showNotification('Error cargando información del cliente: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR TEMPLATE DE MENSAJE
+        function updateMessageTemplate() {
+            const tipoRecordatorio = document.getElementById('tipo_recordatorio').value;
+            const clienteId = document.getElementById('cliente_select').value;
+            const cuotaId = document.getElementById('cuota_select').value;
+            const mensajeTextarea = document.getElementById('mensaje');
+
+            if (!tipoRecordatorio || tipoRecordatorio === 'personalizado') {
+                return;
+            }
+
+            const cliente = clientes.find(c => c.id === clienteId);
+            const cuotaSelect = document.getElementById('cuota_select');
+            const cuotaOption = cuotaSelect.selectedOptions[0];
+
+            let template = templates[tipoRecordatorio] || '';
+            
+            // Reemplazar variables
+            if (cliente) {
+                template = template.replace(/{cliente}/g, cliente.nombre_completo);
+            }
+            
+            if (cuotaOption && cuotaId) {
+                template = template.replace(/{monto}/g, cuotaOption.dataset.monto);
+                template = template.replace(/{fecha}/g, new Date(cuotaOption.dataset.fecha).toLocaleDateString('es-EC'));
+                template = template.replace(/{cuota}/g, cuotaOption.dataset.numero);
+                
+                // Calcular días de atraso si es mensaje de mora
+                if (tipoRecordatorio === 'mora') {
+                    const fechaVencimiento = new Date(cuotaOption.dataset.fecha);
+                    const hoy = new Date();
+                    const diasAtraso = Math.max(0, Math.floor((hoy - fechaVencimiento) / (1000 * 60 * 60 * 24)));
+                    template = template.replace(/{dias_atraso}/g, diasAtraso);
+                }
+            }
+
+            mensajeTextarea.value = template;
+            updateCharacterCount();
+        }
+
+        // PROCESAR RECORDATORIOS AUTOMÁTICOS
+        async function processAutomaticReminders() {
+            try {
+                showNotification('Procesando recordatorios automáticos...', 'success');
+                
+                // Obtener cuotas que necesitan recordatorios
+                const hoy = new Date();
+                const fechaTres = new Date();
+                fechaTres.setDate(hoy.getDate() + 3);
+
+                const { data: cuotasRecordatorio, error } = await supabase
+                    .from('cuotas')
+                    .select(`
+                        *,
+                        creditos (
+                            clientes (
+                                id,
+                                nombre_completo,
+                                numero_celular
+                            )
+                        )
+                    `)
+                    .eq('estado', 'pendiente')
+                    .lte('fecha_vencimiento', fechaTres.toISOString().split('T')[0]);
+
+                if (error) throw error;
+
+                let recordatoriosCreados = 0;
+
+                for (const cuota of cuotasRecordatorio || []) {
+                    const cliente = cuota.creditos?.clientes;
+                    if (!cliente?.numero_celular) continue;
+
+                    const fechaVencimiento = new Date(cuota.fecha_vencimiento);
+                    const diasParaVencimiento = Math.floor((fechaVencimiento - hoy) / (1000 * 60 * 60 * 24));
+                    
+                    let tipoRecordatorio = '';
+                    let template = '';
+
+                    if (diasParaVencimiento === 3) {
+                        tipoRecordatorio = 'previo';
+                        template = templates.previo;
+                    } else if (diasParaVencimiento === 0) {
+                        tipoRecordatorio = 'vencimiento';
+                        template = templates.vencimiento;
+                    } else if (diasParaVencimiento < 0) {
+                        tipoRecordatorio = 'mora';
+                        template = templates.mora;
+                    }
+
+                    if (tipoRecordatorio) {
+                        // Verificar si ya existe un recordatorio reciente
+                        const { data: existeRecordatorio } = await supabase
+                            .from('recordatorios_whatsapp')
+                            .select('id')
+                            .eq('cliente_id', cliente.id)
+                            .eq('cuota_id', cuota.id)
+                            .eq('tipo_recordatorio', tipoRecordatorio)
+                            .gte('fecha_envio', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+                        if (existeRecordatorio?.length > 0) continue;
+
+                        // Personalizar mensaje
+                        let mensaje = template
+                            .replace(/{cliente}/g, cliente.nombre_completo)
+                            .replace(/{monto}/g, cuota.monto_cuota)
+                            .replace(/{fecha}/g, fechaVencimiento.toLocaleDateString('es-EC'))
+                            .replace(/{cuota}/g, cuota.numero_cuota);
+
+                        if (tipoRecordatorio === 'mora') {
+                            const diasAtraso = Math.abs(diasParaVencimiento);
+                            mensaje = mensaje.replace(/{dias_atraso}/g, diasAtraso);
+                        }
+
+                        // Crear recordatorio
+                        const { error: errorInsert } = await supabase
+                            .from('recordatorios_whatsapp')
+                            .insert([{
+                                cliente_id: cliente.id,
+                                cuota_id: cuota.id,
+                                tipo_recordatorio: tipoRecordatorio,
+                                mensaje: mensaje,
+                                fecha_envio: new Date().toISOString(),
+                                estado_envio: 'pendiente'
+                            }]);
+
+                        if (!errorInsert) {
+                            recordatoriosCreados++;
+                        }
+                    }
+                }
+
+                showNotification(`Se crearon ${recordatoriosCreados} recordatorios automáticos`, 'success');
+                loadNotifications();
+                updateStats();
+
+            } catch (error) {
+                console.error('Error procesando recordatorios:', error);
+                showNotification('Error procesando recordatorios: ' + error.message, 'error');
+            }
+        }
+
+        // ENVIAR MENSAJE VÍA WHATSAPP
+        function sendViaWhatsApp(telefono, mensaje) {
+            if (!telefono) {
+                showNotification('El cliente no tiene número de teléfono registrado', 'error');
+                return;
+            }
+            
+            const mensajeDecodificado = decodeURIComponent(mensaje);
+            const url = `https://wa.me/${telefono.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(mensajeDecodificado)}`;
+            window.open(url, '_blank');
+        }
+
+        // ENVIAR MENSAJE WHATSAPP
+        async function sendWhatsAppMessage(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const clienteId = formData.get('cliente_id');
+            const cliente = clientes.find(c => c.id === clienteId);
+            
+            if (!cliente?.numero_celular) {
+                showNotification('El cliente seleccionado no tiene número de teléfono', 'error');
+                return;
+            }
+
+            const recordatorioData = {
+                cliente_id: clienteId,
+                cuota_id: formData.get('cuota_id') || null,
+                tipo_recordatorio: formData.get('tipo_recordatorio'),
+                mensaje: formData.get('mensaje'),
+                fecha_envio: formData.get('fecha_programada') || new Date().toISOString(),
+                estado_envio: formData.get('fecha_programada') ? 'programado' : 'pendiente'
+            };
+
+            try {
+                document.getElementById('sendButton').disabled = true;
+                document.getElementById('sendButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+                const { error } = await supabase
+                    .from('recordatorios_whatsapp')
+                    .insert([recordatorioData]);
+
+                if (error) throw error;
+
+                // Si no está programado, abrir WhatsApp inmediatamente
+                if (!formData.get('fecha_programada')) {
+                    sendViaWhatsApp(cliente.numero_celular, formData.get('mensaje'));
+                    
+                    // Actualizar estado a enviado
+                    // Actualizar estado a enviado
+                    setTimeout(async () => {
+                        await supabase
+                            .from('recordatorios_whatsapp')
+                            .update({ estado_envio: 'enviado' })
+                            .eq('cliente_id', clienteId)
+                            .eq('mensaje', formData.get('mensaje'))
+                            .order('fecha_envio', { ascending: false })
+                            .limit(1);
+                        
+                        loadNotifications();
+                        updateStats();
+                    }, 2000);
+                }
+
+                showNotification(
+                    formData.get('fecha_programada') ? 
+                    'Mensaje programado exitosamente' : 
+                    'Mensaje enviado a WhatsApp', 
+                    'success'
+                );
+
+                closeSendModal();
+                loadNotifications();
+                updateStats();
+
+            } catch (error) {
+                console.error('Error enviando mensaje:', error);
+                showNotification('Error enviando mensaje: ' + error.message, 'error');
+            } finally {
+                document.getElementById('sendButton').disabled = false;
+                document.getElementById('sendButton').innerHTML = '<i class="fab fa-whatsapp"></i> Enviar Mensaje';
+            }
+        }
+
+        // REINTENTAR MENSAJE
+        async function retryMessage(notificationId) {
+            try {
+                const { error } = await supabase
+                    .from('recordatorios_whatsapp')
+                    .update({ 
+                        estado_envio: 'pendiente',
+                        fecha_envio: new Date().toISOString() 
+                    })
+                    .eq('id', notificationId);
+
+                if (error) throw error;
+
+                showNotification('Mensaje marcado para reintento', 'success');
+                loadNotifications();
+                updateStats();
+
+            } catch (error) {
+                console.error('Error reintentando mensaje:', error);
+                showNotification('Error reintentando mensaje: ' + error.message, 'error');
+            }
+        }
+
+        // ELIMINAR NOTIFICACIÓN
+        async function deleteNotification(notificationId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta notificación?')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('recordatorios_whatsapp')
+                    .delete()
+                    .eq('id', notificationId);
+
+                if (error) throw error;
+
+                showNotification('Notificación eliminada exitosamente', 'success');
+                loadNotifications();
+                updateStats();
+
+            } catch (error) {
+                console.error('Error eliminando notificación:', error);
+                showNotification('Error eliminando notificación: ' + error.message, 'error');
+            }
+        }
+
+        // FILTRAR NOTIFICACIONES
+        function filterNotifications() {
+            const estadoFilter = document.getElementById('estadoFilter').value;
+            const tipoFilter = document.getElementById('tipoFilter').value;
+            const fechaFilter = document.getElementById('fechaFilter').value;
+            
+            filteredNotifications = notifications.filter(notification => {
+                const matchesEstado = !estadoFilter || notification.estado_envio === estadoFilter;
+                const matchesTipo = !tipoFilter || notification.tipo_recordatorio === tipoFilter;
+                const matchesFecha = !fechaFilter || notification.fecha_envio?.startsWith(fechaFilter);
+                
+                return matchesEstado && matchesTipo && matchesFecha;
+            });
+            
+            renderNotifications();
+        }
+
+        // CARGAR TEMPLATES
+        function loadTemplates() {
+            const storedTemplates = localStorage.getItem('whatsapp_templates');
+            if (storedTemplates) {
+                templates = JSON.parse(storedTemplates);
+            }
+        }
+
+        // GUARDAR TEMPLATES
+        function saveTemplates(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            templates = {
+                previo: formData.get('template_previo'),
+                vencimiento: formData.get('template_vencimiento'),
+                mora: formData.get('template_mora')
+            };
+
+            localStorage.setItem('whatsapp_templates', JSON.stringify(templates));
+            
+            showNotification('Templates guardados exitosamente', 'success');
+            closeTemplatesModal();
+        }
+
+        // GUARDAR CONFIGURACIÓN
+        function saveConfiguration(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const config = {
+                horario_inicio: formData.get('horario_inicio'),
+                horario_fin: formData.get('horario_fin'),
+                dias_previo: formData.get('dias_previo'),
+                max_intentos: formData.get('max_intentos'),
+                intervalo_mora: formData.get('intervalo_mora')
+            };
+
+            localStorage.setItem('whatsapp_config', JSON.stringify(config));
+            
+            showNotification('Configuración guardada exitosamente', 'success');
+            closeConfigModal();
+        }
+
+        // TOGGLE CONFIGURACIÓN
+        function toggleConfig(element, configKey) {
+            element.classList.toggle('active');
+            
+            const config = JSON.parse(localStorage.getItem('whatsapp_toggles') || '{}');
+            config[configKey] = element.classList.contains('active');
+            localStorage.setItem('whatsapp_toggles', JSON.stringify(config));
+            
+            showNotification(`Configuración ${configKey} ${config[configKey] ? 'activada' : 'desactivada'}`, 'success');
+        }
+
+        // FUNCIONES DE MODAL
+        function openSendModal() {
+            document.getElementById('sendModal').classList.add('show');
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').classList.remove('show');
+            document.getElementById('sendForm').reset();
+            document.getElementById('clienteInfo').style.display = 'none';
+        }
+
+        function openConfigModal() {
+            // Cargar configuración existente
+            const config = JSON.parse(localStorage.getItem('whatsapp_config') || '{}');
+            
+            document.getElementById('horario_inicio').value = config.horario_inicio || '08:00';
+            document.getElementById('horario_fin').value = config.horario_fin || '18:00';
+            document.getElementById('dias_previo').value = config.dias_previo || '3';
+            document.getElementById('max_intentos').value = config.max_intentos || '3';
+            document.getElementById('intervalo_mora').value = config.intervalo_mora || '1';
+            
+            document.getElementById('configModal').classList.add('show');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('show');
+        }
+
+        function openTemplatesModal() {
+            document.getElementById('template_previo').value = templates.previo;
+            document.getElementById('template_vencimiento').value = templates.vencimiento;
+            document.getElementById('template_mora').value = templates.mora;
+            
+            document.getElementById('templatesModal').classList.add('show');
+        }
+
+        function closeTemplatesModal() {
+            document.getElementById('templatesModal').classList.remove('show');
+        }
+
+        // VER MENSAJES PROGRAMADOS
+        function viewScheduledMessages() {
+            const programados = notifications.filter(n => n.estado_envio === 'programado');
+            
+            if (programados.length === 0) {
+                showNotification('No hay mensajes programados', 'error');
+                return;
+            }
+            
+            alert(`Hay ${programados.length} mensajes programados para envío futuro.`);
+        }
+
+        // FUNCIONES AUXILIARES
+        function updateCharacterCount() {
+            const mensaje = document.getElementById('mensaje');
+            const charCount = document.getElementById('charCount');
+            
+            const length = mensaje.value.length;
+            charCount.textContent = length;
+            
+            if (length > 1000) {
+                charCount.style.color = '#f56565';
+            } else if (length > 800) {
+                charCount.style.color = '#ed8936';
+            } else {
+                charCount.style.color = '#718096';
+            }
+        }
+
+        function formatTipoRecordatorio(tipo) {
+            const tipos = {
+                'previo': 'Recordatorio Previo',
+                'vencimiento': 'Día Vencimiento',
+                'mora': 'Notificación Mora',
+                'personalizado': 'Personalizado'
+            };
+            return tipos[tipo] || tipo;
+        }
+
+        function formatEstadoEnvio(estado) {
+            const estados = {
+                'pendiente': 'Pendiente',
+                'enviado': 'Enviado',
+                'entregado': 'Entregado',
+                'leido': 'Leído',
+                'fallido': 'Fallido',
+                'programado': 'Programado'
+            };
+            return estados[estado] || estado;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-EC', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // FUNCIONES DE NAVEGACIÓN
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                window.location.href = './';
+            }
+        }
+
+        // EVENTOS DE TECLADO
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeSendModal();
+                closeConfigModal();
+                closeTemplatesModal();
+            }
+        });
+
+        // CERRAR MODALES CLICKEANDO FUERA
+        ['sendModal', 'configModal', 'templatesModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', function(event) {
+                if (event.target === this) {
+                    if (modalId === 'sendModal') closeSendModal();
+                    if (modalId === 'configModal') closeConfigModal();
+                    if (modalId === 'templatesModal') closeTemplatesModal();
+                }
+            });
+        });
+
+        // INICIALIZAR CONFIGURACIÓN AL CARGAR
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar estados de toggles
+            const toggles = JSON.parse(localStorage.getItem('whatsapp_toggles') || '{}');
+            
+            Object.entries(toggles).forEach(([key, value]) => {
+                const elements = document.querySelectorAll(`[onclick*="${key}"]`);
+                elements.forEach(el => {
+                    if (value) {
+                        el.classList.add('active');
+                    } else {
+                        el.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificaciones WhatsApp - Sistema de Cobranza</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title-section {
+            flex: 1;
+        }
+
+        .page-title {
+            font-size: 2.8rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #25d366, #128c7e);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        /* TARJETAS DE ESTADÍSTICAS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.success { border-left-color: #25d366; }
+        .stat-card.warning { border-left-color: #ed8936; }
+        .stat-card.danger { border-left-color: #f56565; }
+        .stat-card.info { border-left-color: #4299e1; }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card.success .stat-icon { color: #25d366; }
+        .stat-card.warning .stat-icon { color: #ed8936; }
+        .stat-card.danger .stat-icon { color: #f56565; }
+        .stat-card.info .stat-icon { color: #4299e1; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* SECCIONES PRINCIPALES */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* CONFIGURACIÓN RÁPIDA */
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .config-item:last-child {
+            border-bottom: none;
+        }
+
+        .config-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .config-description {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #25d366;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        /* TIMELINE DE RECORDATORIOS */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 15px;
+            border-left: 4px solid #25d366;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.3rem;
+            top: 1.5rem;
+            width: 12px;
+            height: 12px;
+            background: #25d366;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+
+        .timeline-time {
+            font-weight: 600;
+            color: #25d366;
+            font-size: 0.9rem;
+        }
+
+        .timeline-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0.5rem 0;
+        }
+
+        .timeline-message {
+            color: #718096;
+            font-size: 0.9rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        /* TABLA DE NOTIFICACIONES */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #2d3748;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        /* ESTADOS DE NOTIFICACIÓN */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pendiente {
+            background: #feebc8;
+            color: #dd6b20;
+        }
+
+        .status-enviado {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-entregado {
+            background: #bee3f8;
+            color: #2a4365;
+        }
+
+        .status-fallido {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-leido {
+            background: #d4f4ff;
+            color: #0066cc;
+        }
+
+        /* TIPOS DE RECORDATORIO */
+        .tipo-badge {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tipo-previo {
+            background: #e6f3ff;
+            color: #0066cc;
+        }
+
+        .tipo-vencimiento {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .tipo-mora {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        /* BOTONES DE ACCIÓN */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-whatsapp {
+            background: #e6f7ea;
+            color: #25d366;
+        }
+
+        .btn-whatsapp:hover {
+            background: #c6f6d5;
+        }
+
+        .btn-retry {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .btn-retry:hover {
+            background: #ffeaa7;
+        }
+
+        .btn-delete {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        .btn-delete:hover {
+            background: #ffcccc;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            background: #f1f5f9;
+            color: #4a5568;
+        }
+
+        /* FORMULARIOS */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #25d366;
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .character-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+
+        /* TEMPLATES */
+        .template-item {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .template-item:hover {
+            border-color: #25d366;
+            background: #f0fff4;
+        }
+
+        .template-item.selected {
+            border-color: #25d366;
+            background: #f0fff4;
+        }
+
+        .template-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-preview {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        /* LOADING Y ESTADOS */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #25d366;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+
+        /* NOTIFICACIONES */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: linear-gradient(45deg, #25d366, #128c7e);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                CobraSystem
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="clientes.html" class="nav-link"><i class="fas fa-users"></i> Clientes</a></li>
+                <li><a href="prestamos.html" class="nav-link"><i class="fas fa-handshake"></i> Préstamos</a></li>
+                <li><a href="pagos.html" class="nav-link"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+                <li><a href="notificaciones.html" class="nav-link active"><i class="fab fa-whatsapp"></i> WhatsApp</a></li>
+            </ul>
+
+            <div class="navbar-user">
+                <span><i class="fas fa-user-circle"></i> <span id="username">Usuario</span></span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fab fa-whatsapp" style="color: #25d366;"></i>
+                    Notificaciones WhatsApp
+                </h1>
+                <p class="page-subtitle">Automatiza tus recordatorios de pago y mejora la cobranza</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-secondary" onclick="openConfigModal()">
+                    <i class="fas fa-cog"></i> Configuración
+                </button>
+                <button class="btn-primary" onclick="openSendModal()">
+                    <i class="fab fa-whatsapp"></i> Enviar Mensaje
+                </button>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="stats-row">
+            <div class="stat-card success">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-value" id="mensajesEnviados">0</div>
+                <div class="stat-label">Mensajes Enviados Hoy</div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-value" id="mensajesPendientes">0</div>
+                <div class="stat-label">Pendientes de Envío</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-icon"><i class="fas fa-eye"></i></div>
+                <div class="stat-value" id="mensajesLeidos">0</div>
+                <div class="stat-label">Mensajes Leídos</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-value" id="mensajesFallidos">0</div>
+                <div class="stat-label">Envíos Fallidos</div>
+            </div>
+        </div>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="main-grid">
+            <!-- LISTA DE NOTIFICACIONES -->
+            <div class="section-card">
+                <h3 class="section-title">
+                    <i class="fas fa-list"></i>
+                    Historial de Notificaciones
+                </h3>
+
+                <!-- FILTROS RÁPIDOS -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                    <select class="form-select" id="estadoFilter" onchange="filterNotifications()" style="max-width: 150px;">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="enviado">Enviado</option>
+                        <option value="entregado">Entregado</option>
+                        <option value="leido">Leído</option>
+                        <option value="fallido">Fallido</option>
+                    </select>
+                    <select class="form-select" id="tipoFilter" onchange="filterNotifications()" style="max-width: 150px;">
+                        <option value="">Todos los tipos</option>
+                        <option value="previo">Recordatorio Previo</option>
+                        <option value="vencimiento">Día Vencimiento</option>
+                        <option value="mora">Notificación Mora</option>
+                    </select>
+                    <input type="date" class="form-input" id="fechaFilter" onchange="filterNotifications()" style="max-width: 150px;">
+                </div>
+
+                <!-- LOADING -->
+                <div id="loadingNotifications" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <div>
+                        <h3>Cargando notificaciones...</h3>
+                        <p>Obteniendo historial de WhatsApp</p>
+                    </div>
+                </div>
+
+                <!-- TABLA -->
+                <div id="notificationsContainer" class="table-container">
+                    <div class="table-header">
+                        <h4 class="table-title">Notificaciones Recientes</h4>
+                        <span id="notificationsCount">0 notificaciones</span>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Tipo</th>
+                                <th>Mensaje</th>
+                                <th>Fecha Envío</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificationsTableBody">
+                            <!-- Se llena dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PANEL DE CONTROL -->
+            <div class="section-card">
+                <h3 class="section-title">
+                    <i class="fas fa-robot"></i>
+                    Automatización
+                </h3>
+
+                <!-- CONFIGURACIÓN RÁPIDA -->
+                <div style="margin-bottom: 2rem;">
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">Recordatorios Automáticos</div>
+                            <div class="config-description">Envío automático de recordatorios</div>
+                        </div>
+                        <div class="toggle-switch active" onclick="toggleConfig(this, 'autoReminders')"></div>
+                    </div>
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">Notificaciones de Mora</div>
+                            <div class="config-description">Alertas para pagos vencidos</div>
+                        </div>
+                        <div class="toggle-switch active" onclick="toggleConfig(this, 'moraAlerts')"></div>
+                    </div>
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">Horario Laboral</div>
+                            <div class="config-description">Solo enviar en horas de trabajo</div>
+                        </div>
+                        <div class="toggle-switch active" onclick="toggleConfig(this, 'workingHours')"></div>
+                    </div>
+                </div>
+
+                <!-- TIMELINE DE RECORDATORIOS -->
+                <h4 style="font-weight: 600; color: #2d3748; margin-bottom: 1rem;">
+                    <i class="fas fa-calendar-alt"></i> Programación Automática
+                </h4>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-time">3 días antes</div>
+                        <div class="timeline-title">Recordatorio Amistoso</div>
+                        <div class="timeline-message">
+                            "Hola {cliente}, te recordamos que tu cuota de ${monto} vence el {fecha}. ¡Gracias por mantenerte al día!"
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-time">Día de vencimiento</div>
+                        <div class="timeline-title">Recordatorio Urgente</div>
+                        <div class="timeline-message">
+                            "Hola {cliente}, hoy vence tu cuota de ${monto}. Puedes realizar el pago hasta las 6 PM."
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-time">1 día después</div>
+                        <div class="timeline-title">Notificación de Mora</div>
+                        <div class="timeline-message">
+                            "Hola {cliente}, tu pago de ${monto} está vencido. Comunícate con nosotros para evitar recargos."
+                        
