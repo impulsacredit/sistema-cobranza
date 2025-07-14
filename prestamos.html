@@ -929,7 +929,7 @@
                         <option value="semanal">Semanal</option>
                         <option value="quincenal">Quincenal</option>
                         <option value="mensual">Mensual</option>
-                        <option value="mensual">Diario</option>
+                        <option value="diario">Diario</option>
                     </select>
                 </div>
             </div>
@@ -1378,52 +1378,49 @@
         }
 
         // GENERAR CUOTAS
-        async function generateCuotas(prestamo) {
-            try {
-                const cuotas = [];
-                const fechaInicio = new Date(prestamo.fecha_inicio);
-                
-                for (let i = 1; i <= prestamo.numero_cuotas; i++) {
-    const fechaVencimiento = new Date(fechaInicio);
-    
-    switch (prestamo.frecuencia_pago) {
-        case 'diario':
-            fechaVencimiento.setDate(fechaVencimiento.getDate() + i);  
-            break;
-        case 'semanal':
-            fechaVencimiento.setDate(fechaVencimiento.getDate() + (i * 7));
-            break;
-        case 'quincenal':
-            fechaVencimiento.setDate(fechaVencimiento.getDate() + (i * 15));
-            break;
-        case 'mensual':
-            fechaVencimiento.setMonth(fechaVencimiento.getMonth() + i);
-            break;
-    }
-}
-                    }
-                    
-                    cuotas.push({
-                        credito_id: prestamo.id,
-                        numero_cuota: i,
-                        monto_cuota: prestamo.monto_cuota,
-                        fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0],
-                        estado: 'pendiente'
-                    });
-                }
-
-                const { error } = await supabase
-                    .from('cuotas')
-                    .insert(cuotas);
-
-                if (error) throw error;
-
-            } catch (error) {
-                console.error('Error generando cuotas:', error);
-                showNotification('Préstamo creado pero hubo un error generando las cuotas', 'error');
+async function generateCuotas(prestamo) {
+    try {
+        const cuotas = [];
+        const fechaInicio = new Date(prestamo.fecha_inicio);
+        
+        for (let i = 1; i <= prestamo.numero_cuotas; i++) {
+            const fechaVencimiento = new Date(fechaInicio);
+            
+            switch (prestamo.frecuencia_pago) {
+                case 'diario':
+                    fechaVencimiento.setDate(fechaVencimiento.getDate() + i);
+                    break;
+                case 'semanal':
+                    fechaVencimiento.setDate(fechaVencimiento.getDate() + (i * 7));
+                    break;
+                case 'quincenal':
+                    fechaVencimiento.setDate(fechaVencimiento.getDate() + (i * 15));
+                    break;
+                case 'mensual':
+                    fechaVencimiento.setMonth(fechaVencimiento.getMonth() + i);
+                    break;
             }
+            
+            cuotas.push({
+                credito_id: prestamo.id,
+                numero_cuota: i,
+                monto_cuota: prestamo.monto_cuota,
+                fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0],
+                estado: 'pendiente'
+            });
         }
 
+        const { error } = await supabase
+            .from('cuotas')
+            .insert(cuotas);
+
+        if (error) throw error;
+
+    } catch (error) {
+        console.error('Error generando cuotas:', error);
+        showNotification('Préstamo creado pero hubo un error generando las cuotas', 'error');
+    }
+}
         // CANCELAR PRÉSTAMO
         async function cancelLoan(loanId, clientName) {
             if (!confirm(`¿Estás seguro de que quieres cancelar el préstamo de ${clientName}?\n\nEsta acción marcará el préstamo como cancelado.`)) {
