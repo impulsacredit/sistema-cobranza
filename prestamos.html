@@ -1389,7 +1389,7 @@ async function generateCuotas(prestamo) {
 
         const cuotas = [];
         const fechaInicio = new Date(prestamo.fecha_inicio);
-        
+        await supabase.from('cuotas').delete().eq('credito_id', prestamo.id);
         for (let i = 1; i <= prestamo.numero_cuotas; i++) {
             const fechaVencimiento = new Date(fechaInicio);
             
