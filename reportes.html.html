@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Sistema de Cobranza</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title-section {
+            flex: 1;
+        }
+
+        .page-title {
+            font-size: 2.8rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        /* GRID DE REPORTES */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 5px solid;
+            cursor: pointer;
+        }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .report-card.critical { border-left-color: #f56565; }
+        .report-card.important { border-left-color: #ed8936; }
+        .report-card.info { border-left-color: #4299e1; }
+        .report-card.success { border-left-color: #48bb78; }
+
+        .report-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .report-card.critical .report-icon { background: linear-gradient(45deg, #f56565, #e53e3e); }
+        .report-card.important .report-icon { background: linear-gradient(45deg, #ed8936, #dd6b20); }
+        .report-card.info .report-icon { background: linear-gradient(45deg, #4299e1, #3182ce); }
+        .report-card.success .report-icon { background: linear-gradient(45deg, #48bb78, #38a169); }
+
+        .report-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-description {
+            color: #718096;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-report {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-view {
+            background: #e6f3ff;
+            color: #0066cc;
+        }
+
+        .btn-view:hover {
+            background: #cce7ff;
+            transform: translateY(-1px);
+        }
+
+        .btn-export {
+            background: #f0fff4;
+            color: #22543d;
+        }
+
+        .btn-export:hover {
+            background: #c6f6d5;
+            transform: translateY(-1px);
+        }
+
+        /* SECCIÓN DE ANÁLISIS RÁPIDO */
+        .quick-analysis {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .analysis-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value.danger { color: #f56565; }
+        .kpi-value.warning { color: #ed8936; }
+        .kpi-value.success { color: #48bb78; }
+        .kpi-value.info { color: #4299e1; }
+
+        .kpi-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* GRÁFICOS */
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            width: 95%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 1rem;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            background: #f1f5f9;
+            color: #4a5568;
+        }
+
+        /* TABLA */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin: 1rem 0;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #2d3748;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-danger {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-warning {
+            background: #feebc8;
+            color: #dd6b20;
+        }
+
+        .status-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        /* FILTROS */
+        .filters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .filter-select, .filter-input {
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: white;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* LOADING */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+
+        /* NOTIFICACIONES */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                CobraSystem
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="clientes.html" class="nav-link"><i class="fas fa-users"></i> Clientes</a></li>
+                <li><a href="prestamos.html" class="nav-link"><i class="fas fa-handshake"></i> Préstamos</a></li>
+                <li><a href="pagos.html" class="nav-link"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="reportes.html" class="nav-link active"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+            </ul>
+
+            <div class="navbar-user">
+                <span><i class="fas fa-user-circle"></i> <span id="username">Usuario</span></span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">Centro de Reportes</h1>
+                <p class="page-subtitle">Análisis y reportes inteligentes para tu negocio</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-secondary" onclick="refreshAllData()">
+                    <i class="fas fa-sync-alt"></i> Actualizar Datos
+                </button>
+                <button class="btn-primary" onclick="generateExecutiveReport()">
+                    <i class="fas fa-file-pdf"></i> Reporte Ejecutivo
+                </button>
+            </div>
+        </div>
+
+        <!-- ANÁLISIS RÁPIDO -->
+        <div class="quick-analysis">
+            <h3 class="analysis-title">
+                <i class="fas fa-tachometer-alt"></i>
+                Panel de Control Ejecutivo
+            </h3>
+            
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-value danger" id="clientesMorosos">0</div>
+                    <div class="kpi-label">Clientes Morosos</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value warning" id="montoMora">$0</div>
+                    <div class="kpi-label">En Mora</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value success" id="carteraSana">$0</div>
+                    <div class="kpi-label">Cartera Sana</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value info" id="ingresosMes">$0</div>
+                    <div class="kpi-label">Ingresos del Mes</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value info" id="porcentajeMora">0%</div>
+                    <div class="kpi-label">% Morosidad</div>
+                </div>
+            </div>
+
+            <!-- GRÁFICOS -->
+            <div class="charts-section">
+                <div class="chart-container">
+                    <h4 class="chart-title">Evolución de Pagos (Últimos 6 Meses)</h4>
+                    <canvas id="pagosChart" width="400" height="200"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h4 class="chart-title">Distribución de Cartera</h4>
+                    <canvas id="carteraChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRID DE REPORTES -->
+        <div class="reports-grid">
+            <!-- REPORTE DE MOROSIDAD -->
+            <div class="report-card critical" onclick="openMorosidadReport()">
+                <div class="report-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="report-title">Reporte de Morosidad</h3>
+                <p class="report-description">
+                    Análisis detallado de clientes con pagos vencidos, días de atraso y estrategias de cobranza.
+                </p>
+                <div class="report-actions">
+                    <button class="btn-report btn-view">
+                        <i class="fas fa-eye"></i> Ver Reporte
+                    </button>
+                    <button class="btn-report btn-export" onclick="exportMorosidad(event)">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <!-- ANÁLISIS DE CARTERA -->
+            <div class="report-card important" onclick="openCarteraReport()">
+                <div class="report-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3 class="report-title">Análisis de Cartera</h3>
+                <p class="report-description">
+                    Estado general de la cartera, rendimiento por período y proyecciones futuras.
+                </p>
+                <div class="report-actions">
+                    <button class="btn-report btn-view">
+                        <i class="fas fa-chart-line"></i> Ver Análisis
+                    </button>
+                    <button class="btn-report btn-export" onclick="exportCartera(event)">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <!-- FLUJO DE CAJA -->
+            <div class="report-card info" onclick="openFlujoReport()">
+                <div class="report-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <h3 class="report-title">Flujo de Caja</h3>
+                <p class="report-description">
+                    Proyección de ingresos, pagos esperados y análisis de liquidez para los próximos períodos.
+                </p>
+                <div class="report-actions">
+                    <button class="btn-report btn-view">
+                        <i class="fas fa-calendar-alt"></i> Ver Proyección
+                    </button>
+                    <button class="btn-report btn-export" onclick="exportFlujo(event)">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <!-- RANKING DE CLIENTES -->
+            <div class="report-card success" onclick="openRankingReport()">
+                <div class="report-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <h3 class="report-title">Ranking de Clientes</h3>
+                <p class="report-description">
+                    Clasificación de clientes por puntualidad, mejores pagadores y potencial de crecimiento.
+                </p>
+                <div class="report-actions">
+                    <button class="btn-report btn-view">
+                        <i class="fas fa-medal"></i> Ver Ranking
+                    </button>
+                    <button class="btn-report btn-export" onclick="exportRanking(event)">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <!-- ANÁLISIS TEMPORAL -->
+            <div class="report-card info" onclick="openTemporalReport()">
+                <div class="report-icon">
+                    <i class="fas fa-chart-area"></i>
+                </div>
+                <h3 class="report-title">Análisis Temporal</h3>
+                <p class="report-description">
+                    Tendencias históricas, estacionalidad de pagos y comparativos por períodos.
+                </p>
+                <div class="report-actions">
+                    <button class="btn-report btn-view">
+                        <i class="fas fa-history"></i> Ver Tendencias
+                    </button>
+                    <button class="btn-report btn-export" onclick="exportTemporal(event)">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+
+            <!-- REPORTE PERSONALIZADO -->
+            <div class="report-card important" onclick="openCustomReport()">
+                <div class="report-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3 class="report-title">Reporte Personalizado</h3>
+                <p class="report-description">
+                    Crea reportes a medida con filtros específicos y métricas personalizadas.
+                </p>
+                <div class="report-actions">
+                    <button class="btn-report btn-view">
+                        <i class="fas fa-wrench"></i> Personalizar
+                    </button>
+                    <button class="btn-report btn-export" onclick="exportCustom(event)">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL REPORTE DE MOROSIDAD -->
+    <div id="morosidadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle" style="color: #f56565;"></i>
+                    Reporte de Morosidad
+                </h3>
+                <button class="btn-close" onclick="closeMorosidadModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="filters-section">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label class="filter-label">Días de Atraso Mínimo</label>
+                        <select class="filter-select" id="diasAtrasoFilter" onchange="filterMorosidad()">
+                            <option value="0">Todos</option>
+                            <option value="1">1+ días</option>
+                            <option value="7">7+ días</option>
+                            <option value="15">15+ días</option>
+                            <option value="30" selected>30+ días</option>
+                            <option value="60">60+ días</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Monto Mínimo</label>
+                        <input type="number" class="filter-input" id="montoMinimoFilter" placeholder="$0" onchange="filterMorosidad()">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Estado del Crédito</label>
+                        <select class="filter-select" id="estadoCreditoFilter" onchange="filterMorosidad()">
+                            <option value="">Todos</option>
+                            <option value="activo">Activo</option>
+                            <option value="vencido">Vencido</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">&nbsp;</label>
+                        <button class="btn-primary" onclick="generateMorosidadReport()" style="width: 100%;">
+                            <i class="fas fa-search"></i> Generar Reporte
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENIDO DEL REPORTE -->
+            <div id="morosidadContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>
+                        <h3>Generando reporte de morosidad...</h3>
+                        <p>Analizando datos de clientes y cuotas vencidas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL OTROS REPORTES -->
+    <div id="genericModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="genericModalTitle">Reporte</h3>
+                <button class="btn-close" onclick="closeGenericModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="genericModalContent">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let morosidadData = [];
+        let filteredMorosidadData = [];
+        let chartsInitialized = false;
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            if (!localStorage.getItem('userLoggedIn')) {
+                window.location.href = './';
+                return;
+            }
+
+            // Mostrar usuario
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('username').textContent = username;
+
+            // Inicializar Supabase
+            initSupabase();
+        });
+
+        // CONFIGURAR SUPABASE
+        function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
+                setTimeout(() => {
+                    window.location.href = './';
+                }, 2000);
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
+                return;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            loadDashboardData();
+        }
+
+        // CARGAR DATOS DEL DASHBOARD
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    updateKPIs(),
+                    initCharts()
+                ]);
+            } catch (error) {
+                console.error('Error cargando datos del dashboard:', error);
+                showNotification('Error cargando datos: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR KPIs
+        async function updateKPIs() {
+            try {
+                // Obtener cuotas vencidas
+                const { data: cuotasVencidas, error: errorCuotas } = await supabase
+                    .from('cuotas')
+                    .select(`
+                        *,
+                        creditos (
+                            clientes (
+                                nombre_completo
+                            )
+                        )
+                    `)
+                    .eq('estado', 'pendiente')
+                    .lt('fecha_vencimiento', new Date().toISOString());
+
+                if (errorCuotas) throw errorCuotas;
+
+                // Calcular métricas de morosidad
+                const clientesMorososos = new Set(cuotasVencidas?.map(c => c.creditos?.clientes?.nombre_completo)).size;
+                const montoMora = cuotasVencidas?.reduce((sum, c) => sum + (parseFloat(c.monto_cuota) || 0), 0) || 0;
+
+                // Obtener total de cartera
+                const { data: totalCartera, error: errorCartera } = await supabase
+                    .from('cuotas')
+                    .select('monto_cuota');
+
+                if (errorCartera) throw errorCartera;
+
+                const carteraTotal = totalCartera?.reduce((sum, c) => sum + (parseFloat(c.monto_cuota) || 0), 0) || 0;
+                const carteraSana = carteraTotal - montoMora;
+                const porcentajeMora = carteraTotal > 0 ? (montoMora / carteraTotal * 100) : 0;
+
+                // Obtener ingresos del mes
+                const hoy = new Date();
+                const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                
+                const { data: pagosMes, error: errorPagos } = await supabase
+                    .from('pagos')
+                    .select('monto_pagado')
+                    .gte('fecha_pago', primerDiaMes.toISOString().split('T')[0])
+                    .lte('fecha_pago', hoy.toISOString().split('T')[0]);
+
+                if (errorPagos) throw errorPagos;
+
+                const ingresosMes = pagosMes?.reduce((sum, p) => sum + (parseFloat(p.monto_pagado) || 0), 0) || 0;
+
+                // Actualizar KPIs en la interfaz
+                document.getElementById('clientesMorosos').textContent = clientesMorososos;
+                document.getElementById('montoMora').textContent = formatCurrency(montoMora);
+                document.getElementById('carteraSana').textContent = formatCurrency(carteraSana);
+                document.getElementById('ingresosMes').textContent = formatCurrency(ingresosMes);
+                document.getElementById('porcentajeMora').textContent = porcentajeMora.toFixed(1) + '%';
+
+            } catch (error) {
+                console.error('Error actualizando KPIs:', error);
+                showNotification('Error actualizando indicadores: ' + error.message, 'error');
+            }
+        }
+
+        // INICIALIZAR GRÁFICOS
+        async function initCharts() {
+            if (chartsInitialized) return;
+            
+            try {
+                await initPagosChart();
+                await initCarteraChart();
+                chartsInitialized = true;
+            } catch (error) {
+                console.error('Error inicializando gráficos:', error);
+            }
+        }
+
+        // GRÁFICO DE EVOLUCIÓN DE PAGOS
+        async function initPagosChart() {
+            try {
+                // Obtener pagos de los últimos 6 meses
+                const fechaInicio = new Date();
+                fechaInicio.setMonth(fechaInicio.getMonth() - 6);
+
+                const { data: pagos, error } = await supabase
+                    .from('pagos')
+                    .select('monto_pagado, fecha_pago')
+                    .gte('fecha_pago', fechaInicio.toISOString().split('T')[0])
+                    .order('fecha_pago');
+
+                if (error) throw error;
+
+                // Agrupar por mes
+                const pagosPorMes = {};
+                const meses = [];
+                
+                for (let i = 5; i >= 0; i--) {
+                    const fecha = new Date();
+                    fecha.setMonth(fecha.getMonth() - i);
+                    const mesKey = fecha.toISOString().substr(0, 7);
+                    const mesLabel = fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+                    meses.push(mesLabel);
+                    pagosPorMes[mesKey] = 0;
+                }
+
+                pagos?.forEach(pago => {
+                    const mesKey = pago.fecha_pago.substr(0, 7);
+                    if (pagosPorMes.hasOwnProperty(mesKey)) {
+                        pagosPorMes[mesKey] += parseFloat(pago.monto_pagado) || 0;
+                    }
+                });
+
+                const valores = Object.values(pagosPorMes);
+
+                const ctx = document.getElementById('pagosChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: meses,
+                        datasets: [{
+                            label: 'Ingresos por Pagos',
+                            data: valores,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '
+                 + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error en gráfico de pagos:', error);
+            }
+        }
+
+        // GRÁFICO DE DISTRIBUCIÓN DE CARTERA
+        async function initCarteraChart() {
+            try {
+                const { data: cuotas, error } = await supabase
+                    .from('cuotas')
+                    .select('estado, monto_cuota');
+
+                if (error) throw error;
+
+                const distribucion = {
+                    pagadas: 0,
+                    pendientes: 0,
+                    vencidas: 0
+                };
+
+                const hoy = new Date().toISOString().split('T')[0];
+
+                cuotas?.forEach(cuota => {
+                    const monto = parseFloat(cuota.monto_cuota) || 0;
+                    if (cuota.estado === 'pagada') {
+                        distribucion.pagadas += monto;
+                    } else if (cuota.fecha_vencimiento < hoy) {
+                        distribucion.vencidas += monto;
+                    } else {
+                        distribucion.pendientes += monto;
+                    }
+                });
+
+                const ctx = document.getElementById('carteraChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Cartera Sana', 'Pendientes', 'Vencidas'],
+                        datasets: [{
+                            data: [distribucion.pagadas, distribucion.pendientes, distribucion.vencidas],
+                            backgroundColor: ['#48bb78', '#4299e1', '#f56565'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error en gráfico de cartera:', error);
+            }
+        }
+
+        // ABRIR REPORTE DE MOROSIDAD
+        function openMorosidadReport() {
+            document.getElementById('morosidadModal').classList.add('show');
+            generateMorosidadReport();
+        }
+
+        // GENERAR REPORTE DE MOROSIDAD
+        async function generateMorosidadReport() {
+            try {
+                const diasMinimos = parseInt(document.getElementById('diasAtrasoFilter').value) || 0;
+                const montoMinimo = parseFloat(document.getElementById('montoMinimoFilter').value) || 0;
+                const estadoCredito = document.getElementById('estadoCreditoFilter').value;
+
+                // Mostrar loading
+                document.getElementById('morosidadContent').innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>
+                            <h3>Generando reporte de morosidad...</h3>
+                            <p>Analizando datos de clientes y cuotas vencidas</p>
+                        </div>
+                    </div>
+                `;
+
+                const hoy = new Date();
+                const fechaLimite = new Date();
+                fechaLimite.setDate(hoy.getDate() - diasMinimos);
+
+                const { data: cuotasVencidas, error } = await supabase
+                    .from('cuotas')
+                    .select(`
+                        *,
+                        creditos (
+                            estado,
+                            clientes (
+                                nombre_completo,
+                                cedula,
+                                numero_celular
+                            )
+                        )
+                    `)
+                    .eq('estado', 'pendiente')
+                    .lt('fecha_vencimiento', fechaLimite.toISOString());
+
+                if (error) throw error;
+
+                // Filtrar y procesar datos
+                morosidadData = cuotasVencidas?.filter(cuota => {
+                    const cumpleEstado = !estadoCredito || cuota.creditos?.estado === estadoCredito;
+                    const cumpleMonto = parseFloat(cuota.monto_cuota) >= montoMinimo;
+                    return cumpleEstado && cumpleMonto;
+                }).map(cuota => {
+                    const fechaVencimiento = new Date(cuota.fecha_vencimiento);
+                    const diasAtraso = Math.floor((hoy - fechaVencimiento) / (1000 * 60 * 60 * 24));
+                    
+                    return {
+                        ...cuota,
+                        diasAtraso,
+                        cliente: cuota.creditos?.clientes
+                    };
+                }) || [];
+
+                filteredMorosidadData = [...morosidadData];
+                renderMorosidadTable();
+
+            } catch (error) {
+                console.error('Error generando reporte de morosidad:', error);
+                showNotification('Error generando reporte: ' + error.message, 'error');
+            }
+        }
+
+        // RENDERIZAR TABLA DE MOROSIDAD
+        function renderMorosidadTable() {
+            const totalMonto = filteredMorosidadData.reduce((sum, item) => sum + parseFloat(item.monto_cuota), 0);
+            const clientesUnicos = new Set(filteredMorosidadData.map(item => item.cliente?.nombre_completo)).size;
+
+            const content = `
+                <div style="margin-bottom: 2rem;">
+                    <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="kpi-card">
+                            <div class="kpi-value danger">${filteredMorosidadData.length}</div>
+                            <div class="kpi-label">Cuotas Vencidas</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value warning">${clientesUnicos}</div>
+                            <div class="kpi-label">Clientes Afectados</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value danger">${formatCurrency(totalMonto)}</div>
+                            <div class="kpi-label">Monto Total en Mora</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Contacto</th>
+                                <th>Cuota #</th>
+                                <th>Monto</th>
+                                <th>Fecha Vencimiento</th>
+                                <th>Días Atraso</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredMorosidadData.map(item => `
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 600;">${item.cliente?.nombre_completo || 'N/A'}</div>
+                                        <div style="font-size: 0.85rem; color: #718096;">CI: ${item.cliente?.cedula || 'N/A'}</div>
+                                    </td>
+                                    <td>${item.cliente?.numero_celular || 'N/A'}</td>
+                                    <td>#${item.numero_cuota}</td>
+                                    <td style="font-weight: 600;">${formatCurrency(item.monto_cuota)}</td>
+                                    <td>${new Date(item.fecha_vencimiento).toLocaleDateString('es-EC')}</td>
+                                    <td>
+                                        <span class="status-badge ${item.diasAtraso > 60 ? 'status-danger' : item.diasAtraso > 30 ? 'status-warning' : 'status-success'}">
+                                            ${item.diasAtraso} días
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge status-danger">VENCIDA</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn-report btn-view" onclick="contactarCliente('${item.cliente?.numero_celular}')" style="padding: 4px 8px; font-size: 0.8rem;">
+                                            <i class="fas fa-phone"></i> Contactar
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('morosidadContent').innerHTML = content;
+        }
+
+        // OTRAS FUNCIONES DE REPORTES
+        function openCarteraReport() {
+            showGenericModal('Análisis de Cartera', `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-wallet" style="font-size: 3rem; color: #ed8936; margin-bottom: 1rem;"></i>
+                    <h3>Reporte de Cartera en Desarrollo</h3>
+                    <p>Este reporte incluirá análisis detallado del estado de la cartera, rendimiento y proyecciones.</p>
+                </div>
+            `);
+        }
+
+        function openFlujoReport() {
+            showGenericModal('Flujo de Caja', `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-coins" style="font-size: 3rem; color: #4299e1; margin-bottom: 1rem;"></i>
+                    <h3>Proyección de Flujo de Caja</h3>
+                    <p>Análisis de ingresos proyectados y planificación financiera a 30, 60 y 90 días.</p>
+                </div>
+            `);
+        }
+
+        function openRankingReport() {
+            showGenericModal('Ranking de Clientes', `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-trophy" style="font-size: 3rem; color: #48bb78; margin-bottom: 1rem;"></i>
+                    <h3>Ranking de Clientes</h3>
+                    <p>Clasificación de clientes por puntualidad, historial de pagos y potencial de crecimiento.</p>
+                </div>
+            `);
+        }
+
+        function openTemporalReport() {
+            showGenericModal('Análisis Temporal', `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-chart-area" style="font-size: 3rem; color: #4299e1; margin-bottom: 1rem;"></i>
+                    <h3>Análisis de Tendencias</h3>
+                    <p>Evolución histórica de pagos, estacionalidad y comparativos por períodos.</p>
+                </div>
+            `);
+        }
+
+        function openCustomReport() {
+            showGenericModal('Reporte Personalizado', `
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-cogs" style="font-size: 3rem; color: #ed8936; margin-bottom: 1rem;"></i>
+                    <h3>Constructor de Reportes</h3>
+                    <p>Herramienta para crear reportes personalizados con filtros y métricas específicas.</p>
+                </div>
+            `);
+        }
+
+        // FUNCIONES DE MODAL
+        function showGenericModal(title, content) {
+            document.getElementById('genericModalTitle').textContent = title;
+            document.getElementById('genericModalContent').innerHTML = content;
+            document.getElementById('genericModal').classList.add('show');
+        }
+
+        function closeMorosidadModal() {
+            document.getElementById('morosidadModal').classList.remove('show');
+        }
+
+        function closeGenericModal() {
+            document.getElementById('genericModal').classList.remove('show');
+        }
+
+        // FUNCIONES DE EXPORTACIÓN
+        function exportMorosidad(event) {
+            event.stopPropagation();
+            if (filteredMorosidadData.length === 0) {
+                showNotification('No hay datos para exportar', 'error');
+                return;
+            }
+            
+            const csvContent = generateMorosidadCSV();
+            downloadCSV(csvContent, 'reporte_morosidad.csv');
+            showNotification('Reporte de morosidad exportado exitosamente', 'success');
+        }
+
+        function exportCartera(event) {
+            event.stopPropagation();
+            showNotification('🚀 Función de exportación en desarrollo', 'error');
+        }
+
+        function exportFlujo(event) {
+            event.stopPropagation();
+            showNotification('🚀 Función de exportación en desarrollo', 'error');
+        }
+
+        function exportRanking(event) {
+            event.stopPropagation();
+            showNotification('🚀 Función de exportación en desarrollo', 'error');
+        }
+
+        function exportTemporal(event) {
+            event.stopPropagation();
+            showNotification('🚀 Función de exportación en desarrollo', 'error');
+        }
+
+        function exportCustom(event) {
+            event.stopPropagation();
+            showNotification('🚀 Función de exportación en desarrollo', 'error');
+        }
+
+        // GENERAR CSV DE MOROSIDAD
+        function generateMorosidadCSV() {
+            const headers = ['Cliente', 'CI', 'Teléfono', 'Cuota', 'Monto', 'Fecha Vencimiento', 'Días Atraso'];
+            const rows = filteredMorosidadData.map(item => [
+                `"${item.cliente?.nombre_completo || ''}"`,
+                `"${item.cliente?.cedula || ''}"`,
+                `"${item.cliente?.numero_celular || ''}"`,
+                `"#${item.numero_cuota}"`,
+                `"${item.monto_cuota}"`,
+                `"${item.fecha_vencimiento}"`,
+                `"${item.diasAtraso}"`
+            ]);
+
+            return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        }
+
+        // DESCARGAR CSV
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // FUNCIONES AUXILIARES
+        function contactarCliente(telefono) {
+            if (telefono) {
+                window.open(`https://wa.me/${telefono}?text=Hola, nos comunicamos desde CobraSystem para recordarle sobre su cuota pendiente.`, '_blank');
+            } else {
+                showNotification('No hay número de teléfono disponible', 'error');
+            }
+        }
+
+        function filterMorosidad() {
+            generateMorosidadReport();
+        }
+
+        function refreshAllData() {
+            loadDashboardData();
+            showNotification('Datos actualizados correctamente', 'success');
+        }
+
+        function generateExecutiveReport() {
+            showNotification('🚀 Generación de reporte ejecutivo en desarrollo', 'error');
+        }
+
+        // FORMATEAR MONEDA
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-EC', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // FUNCIONES DE NAVEGACIÓN
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                window.location.href = './';
+            }
+        }
+
+        // EVENTOS DE TECLADO
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeMorosidadModal();
+                closeGenericModal();
+            }
+        });
+
+        // CERRAR MODALES CLICKEANDO FUERA
+        ['morosidadModal', 'genericModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', function(event) {
+                if (event.target === this) {
+                    if (modalId === 'morosidadModal') closeMorosidadModal();
+                    if (modalId === 'genericModal') closeGenericModal();
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
+                
