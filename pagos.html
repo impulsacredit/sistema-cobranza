@@ -661,60 +661,22 @@
                 margin: 1rem;
             }
         }
-         /* ESTILOS PARA SELECT DE CUOTAS */
-        .cuota-pagada {
-            background-color: #d4edda !important;
-            color: #155724 !important;
-            font-weight: bold !important;
-        }
+        /* ESTILOS PARA CUOTAS CON ESTADO */
+select option:disabled {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    font-weight: bold !important;
+}
 
-        .cuota-vencida {
-            background-color: #f8d7da !important;
-            color: #721c24 !important;
-            font-weight: bold !important;
-        }
+select option[style*="f8d7da"] {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}
 
-        .cuota-pendiente {
-            background-color: #fff3cd !important;
-            color: #856404 !important;
-        }
+select option[style*="fff3cd"] {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
 
-        .resumen-cuotas {
-            font-weight: bold !important;
-            font-style: italic;
-            color: #4a5568 !important;
-            background-color: #f8fafc !important;
-        }
-
-        select option.cuota-pagada {
-            background-color: #d4edda;
-            color: #155724;
-            font-weight: bold;
-        }
-
-        select option.cuota-vencida {
-            background-color: #f8d7da;
-            color: #721c24;
-            font-weight: bold;
-        }
-
-        select option.cuota-pendiente {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        select option[disabled] {
-            font-style: italic;
-        }
-
-        #cuota-indicator {
-            margin-top: 8px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.3s ease;
         }
     </style>
 </head>
