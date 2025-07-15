@@ -937,7 +937,7 @@
             <h1 class="login-title">Portal del Cliente</h1>
             <p class="login-subtitle">Accede a tu estado de cuenta actualizado</p>
             
-            <form id="loginForm" onsubmit="return login(event)">
+            <form id="loginForm" onsubmit="login(event)">
                 <div class="form-group">
                     <label class="form-label" for="cedula">Número de Cédula</label>
                     <input 
@@ -947,7 +947,6 @@
                         class="form-input" 
                         placeholder="Ingresa tu cédula"
                         required
-                        autocomplete="off"
                     >
                 </div>
                 
