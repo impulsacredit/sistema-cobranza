@@ -1314,16 +1314,34 @@
                         .eq('id', editingPaymentId);
                 } else {
                     // Crear nuevo pago
-                    result = await supabase
-                        .from('pagos')
-                        .insert([paymentData]);
+result = await supabase
+    .from('pagos')
+    .insert([paymentData]);
 
-                    // Marcar cuota como pagada
-                    if (!result.error) {
-                        await supabase
-                            .from('cuotas')
-                            .update({ estado: 'pagada' })
-                            .eq('id', cuotaId);
+// NUEVO: Verificar si la cuota está totalmente pagada
+if (!result.error) {
+    // Obtener todos los pagos de esta cuota (incluyendo el que acabamos de insertar)
+    const { data: pagosCuota, error: errorPagos } = await supabase
+        .from('pagos')
+        .select('monto_pagado')
+        .eq('cuota_id', cuotaId);
+
+    if (!errorPagos && pagosCuota) {
+        // Sumar todos los pagos
+        const totalPagado = pagosCuota.reduce((sum, pago) => 
+            sum + parseFloat(pago.monto_pagado || 0), 0
+        );
+
+        // Comparar con el monto de la cuota
+        if (totalPagado >= parseFloat(cuota.monto_cuota)) {
+            // Marcar cuota como pagada
+            await supabase
+                .from('cuotas')
+                .update({ 
+                    estado: 'pagado',  // NOTA: usar 'pagado' no 'pagada'
+                    fecha_pago: paymentData.fecha_pago 
+                })
+                .eq('id', cuotaId);
                     }
                 }
 
