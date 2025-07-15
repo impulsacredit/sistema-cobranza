@@ -661,6 +661,61 @@
                 margin: 1rem;
             }
         }
+         /* ESTILOS PARA SELECT DE CUOTAS */
+        .cuota-pagada {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+            font-weight: bold !important;
+        }
+
+        .cuota-vencida {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+            font-weight: bold !important;
+        }
+
+        .cuota-pendiente {
+            background-color: #fff3cd !important;
+            color: #856404 !important;
+        }
+
+        .resumen-cuotas {
+            font-weight: bold !important;
+            font-style: italic;
+            color: #4a5568 !important;
+            background-color: #f8fafc !important;
+        }
+
+        select option.cuota-pagada {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        select option.cuota-vencida {
+            background-color: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        select option.cuota-pendiente {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        select option[disabled] {
+            font-style: italic;
+        }
+
+        #cuota-indicator {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -1186,55 +1241,120 @@
             document.getElementById('paymentModal').classList.add('show');
         }
 
-        // CARGAR CUOTAS PENDIENTES POR CLIENTE
-        async function loadCuotasPendientes() {
-            const clienteId = document.getElementById('cliente_id').value;
-            const cuotaSelect = document.getElementById('cuota_id');
-            
-            if (!clienteId) {
-                cuotaSelect.innerHTML = '<option value="">Primero selecciona un cliente</option>';
-                return;
-            }
+       // CARGAR CUOTAS PENDIENTES POR CLIENTE CON ESTADO VISUAL
+async function loadCuotasPendientes() {
+    const clienteId = document.getElementById('cliente_id').value;
+    const cuotaSelect = document.getElementById('cuota_id');
+    
+    if (!clienteId) {
+        cuotaSelect.innerHTML = '<option value="">Primero selecciona un cliente</option>';
+        return;
+    }
 
-            try {
-                const { data, error } = await supabase
-                    .from('cuotas')
-                    .select(`
-                        *,
-                        creditos!inner (
-                            cliente_id,
-                            clientes (
-                                nombre_completo
-                            )
-                        )
-                    `)
-                    .eq('estado', 'pendiente')
-                    .eq('creditos.cliente_id', clienteId)
-                    .order('fecha_vencimiento');
+    try {
+        // Obtener TODAS las cuotas del cliente (pendientes Y pagadas)
+        const { data, error } = await supabase
+            .from('cuotas')
+            .select(`
+                *,
+                creditos!inner (
+                    cliente_id,
+                    monto_prestamo,
+                    fecha_inicio,
+                    clientes (
+                        nombre_completo
+                    )
+                )
+            `)
+            .eq('creditos.cliente_id', clienteId)
+            .order('creditos.fecha_inicio', { ascending: true })
+            .order('numero_cuota', { ascending: true });
 
-                if (error) throw error;
+        if (error) throw error;
 
-                cuotasPendientes = data || [];
-                
-                cuotaSelect.innerHTML = '<option value="">Seleccionar cuota...</option>';
-                
-                if (cuotasPendientes.length === 0) {
-                    cuotaSelect.innerHTML = '<option value="">No hay cuotas pendientes</option>';
-                } else {
-                    cuotasPendientes.forEach(cuota => {
-                        const option = document.createElement('option');
-                        option.value = cuota.id;
-                        option.textContent = `Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - Vence: ${new Date(cuota.fecha_vencimiento).toLocaleDateString('es-EC')}`;
-                        cuotaSelect.appendChild(option);
-                    });
-                }
-
-            } catch (error) {
-                console.error('Error cargando cuotas pendientes:', error);
-                showNotification('Error cargando cuotas pendientes: ' + error.message, 'error');
-            }
+        const todasLasCuotas = data || [];
+        
+        // Separar cuotas pendientes y pagadas
+        const cuotasPendientes = todasLasCuotas.filter(c => c.estado === 'pendiente');
+        const cuotasPagadas = todasLasCuotas.filter(c => c.estado === 'pagado');
+        
+        // Guardar para uso global
+        window.cuotasPendientes = cuotasPendientes;
+        
+        cuotaSelect.innerHTML = '<option value="">Seleccionar cuota...</option>';
+        
+        if (todasLasCuotas.length === 0) {
+            cuotaSelect.innerHTML = '<option value="">No hay cuotas registradas</option>';
+            return;
         }
 
+        // Agrupar cuotas por crédito
+        const cuotasPorCredito = {};
+        
+        todasLasCuotas.forEach(cuota => {
+            const creditoId = cuota.credito_id;
+            if (!cuotasPorCredito[creditoId]) {
+                cuotasPorCredito[creditoId] = {
+                    credito: cuota.creditos,
+                    cuotas: []
+                };
+            }
+            cuotasPorCredito[creditoId].cuotas.push(cuota);
+        });
+
+        // Crear opciones agrupadas con estados visuales
+        Object.entries(cuotasPorCredito).forEach(([creditoId, grupo], index) => {
+            // Crear optgroup para cada préstamo
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = `💰 Préstamo ${index + 1} - ${formatCurrency(grupo.credito.monto_prestamo)} (${grupo.credito.fecha_inicio ? new Date(grupo.credito.fecha_inicio).toLocaleDateString('es-EC') : 'Sin fecha'})`;
+            
+            grupo.cuotas.forEach(cuota => {
+                const option = document.createElement('option');
+                option.value = cuota.id;
+                
+                const fechaVenc = new Date(cuota.fecha_vencimiento).toLocaleDateString('es-EC');
+                
+                if (cuota.estado === 'pagado') {
+                    // CUOTA PAGADA - Deshabilitada y con estilo
+                    option.textContent = `✅ Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - PAGADA (${fechaVenc})`;
+                    option.disabled = true;
+                    option.style.backgroundColor = '#d4edda';
+                    option.style.color = '#155724';
+                    option.style.fontWeight = 'bold';
+                } else {
+                    // CUOTA PENDIENTE - Normal
+                    const diasAtraso = Math.max(0, Math.floor((new Date() - new Date(cuota.fecha_vencimiento)) / (1000 * 60 * 60 * 24)));
+                    
+                    if (diasAtraso > 0) {
+                        option.textContent = `⚠️ Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - VENCIDA (${fechaVenc}) - ${diasAtraso} días`;
+                        option.style.backgroundColor = '#f8d7da';
+                        option.style.color = '#721c24';
+                        option.style.fontWeight = 'bold';
+                    } else {
+                        option.textContent = `🔶 Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - Vence: ${fechaVenc}`;
+                        option.style.backgroundColor = '#fff3cd';
+                        option.style.color = '#856404';
+                    }
+                }
+                
+                optgroup.appendChild(option);
+            });
+            
+            cuotaSelect.appendChild(optgroup);
+        });
+
+        // Mostrar resumen al final
+        if (cuotasPagadas.length > 0) {
+            const optgroupResumen = document.createElement('optgroup');
+            optgroupResumen.label = `📊 RESUMEN: ${cuotasPendientes.length} pendientes, ${cuotasPagadas.length} pagadas`;
+            cuotaSelect.appendChild(optgroupResumen);
+        }
+
+    } catch (error) {
+        console.error('Error cargando cuotas:', error);
+        showNotification('Error cargando cuotas: ' + error.message, 'error');
+    }
+}
         // CARGAR DETALLES DE LA CUOTA SELECCIONADA
         function loadCuotaDetails() {
             const cuotaId = document.getElementById('cuota_id').value;
