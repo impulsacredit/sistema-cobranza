@@ -16,19 +16,16 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            /* Prevenir zoom accidental */
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-            /* Prevenir zoom en inputs (iOS) */
             -webkit-text-size-adjust: 100%;
             -ms-text-size-adjust: 100%;
             text-size-adjust: 100%;
         }
 
-        /* Permitir selección solo en inputs y textos importantes */
-        input, textarea, .timeline-content, .upcoming-amount {
+        input, textarea, .timeline-content, .upcoming-amount, .credit-dates {
             -webkit-user-select: text;
             -moz-user-select: text;
             -ms-user-select: text;
@@ -40,21 +37,17 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
-            /* Prevenir overflow horizontal */
             overflow-x: hidden;
-            /* Estabilizar en móviles */
             position: relative;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Prevenir zoom en inputs de iOS */
         input[type="text"], 
         input[type="tel"], 
         input[type="number"], 
         textarea, 
         select {
             font-size: 16px !important;
-            /* Prevenir zoom automático en iOS */
         }
 
         /* LOGIN SCREEN */
@@ -376,6 +369,42 @@
             transition: all 0.3s ease;
         }
 
+        /* CREDIT INFO */
+        .credit-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .credit-amount {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #2d3748;
+        }
+
+        .credit-frequency {
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .credit-dates {
+            font-size: 0.8rem;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+
+        .credit-period {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #667eea;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 0.25rem;
+        }
+
         /* BADGES */
         .status-badge {
             padding: 6px 12px;
@@ -391,7 +420,7 @@
             color: #2a4365;
         }
 
-        .status-pagada {
+        .status-pagado {
             background: linear-gradient(45deg, #c6f6d5, #9ae6b4);
             color: #22543d;
         }
@@ -401,9 +430,14 @@
             color: #744210;
         }
 
-        .status-vencida {
+        .status-vencido {
             background: linear-gradient(45deg, #fed7d7, #fc8181);
             color: #c53030;
+        }
+
+        .status-completado {
+            background: linear-gradient(45deg, #e2e8f0, #cbd5e0);
+            color: #4a5568;
         }
 
         /* UPCOMING ITEMS */
@@ -590,17 +624,225 @@
             animation: fadeInUp 0.6s ease;
         }
 
-        /* RESPONSIVE MÓVIL OPTIMIZADO */
+        /* TABS SYSTEM */
+        .tabs-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            color: #718096;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            min-width: fit-content;
+        }
+
+        .tab-btn:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-btn i {
+            font-size: 1.1rem;
+        }
+
+        /* TAB CONTENT */
+        .tab-content-container {
+            min-height: 400px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeInTab 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeInTab {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* RESUMEN OVERVIEW */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .overview-item {
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .overview-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .overview-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* PREVIEW SECTIONS */
+        .preview-item {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .preview-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #48bb78;
+        }
+
+        .preview-date {
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        /* SEE MORE BUTTON */
+        .btn-see-more {
+            width: 100%;
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 1rem;
+        }
+
+        .btn-see-more:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* RESPONSIVE TABS */
+        @media (max-width: 768px) {
+            .tabs-container {
+                padding: 0.25rem;
+            }
+
+            .tab-btn {
+                padding: 0.8rem 1rem;
+                font-size: 0.85rem;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .tab-btn span {
+                font-size: 0.75rem;
+            }
+
+            .tab-btn i {
+                font-size: 1rem;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .overview-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+            }
+
+            .overview-item {
+                padding: 1rem;
+            }
+
+            .overview-value {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tab-btn span {
+                display: none;
+            }
+
+            .tab-btn {
+                padding: 1rem 0.5rem;
+            }
+
+            .overview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
         @media (max-width: 768px) {
             body {
-                /* Asegurar que no haya scroll horizontal */
                 max-width: 100vw;
                 overflow-x: hidden;
             }
             
             .container {
                 padding: 1rem;
-                /* Asegurar que el contenedor no se desborde */
                 max-width: 100%;
                 overflow-x: hidden;
             }
@@ -608,7 +850,6 @@
             .login-card {
                 padding: 2rem 1.5rem;
                 margin: 1rem;
-                /* Asegurar que no se desborde */
                 max-width: calc(100vw - 2rem);
             }
 
@@ -624,7 +865,6 @@
 
             .welcome-title {
                 font-size: 1.6rem;
-                /* Reducir en móviles */
                 line-height: 1.2;
             }
 
@@ -643,29 +883,24 @@
 
             .modern-table {
                 font-size: 0.85rem;
-                /* Hacer tabla más pequeña en móviles */
             }
 
             .modern-table th,
             .modern-table td {
                 padding: 8px 12px;
-                /* Reducir padding en móviles */
             }
 
-            /* Evitar que las tarjetas se desborden */
             .section-card, .stat-card, .upcoming-item, .timeline-item {
                 max-width: 100%;
                 overflow-x: hidden;
                 word-wrap: break-word;
             }
             
-            /* Asegurar que los números no se desborden */
             .stat-value, .upcoming-amount, .timeline-amount {
                 font-size: 1.8rem;
                 word-break: break-all;
             }
             
-            /* Inputs más grandes para evitar zoom */
             .form-input {
                 font-size: 16px;
                 padding: 18px 20px;
@@ -677,7 +912,6 @@
             }
         }
 
-        /* Para pantallas muy pequeñas */
         @media (max-width: 480px) {
             .welcome-title {
                 font-size: 1.4rem;
@@ -793,43 +1027,99 @@
                 </div>
             </div>
 
-            <!-- MAIN GRID -->
-            <div class="main-grid fade-in">
-                <!-- LOANS SECTION -->
-                <div class="section-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-handshake"></i>
-                        Mis Préstamos
-                    </h3>
-                    
-                    <div id="creditosContainer">
-                        <!-- Dynamic content -->
-                    </div>
-                </div>
-
-                <!-- UPCOMING PAYMENTS -->
-                <div class="section-card">
-                    <h3 class="section-title">
-                        <i class="fas fa-calendar-exclamation"></i>
-                        Próximos Vencimientos
-                    </h3>
-                    
-                    <div id="vencimientosContainer">
-                        <!-- Dynamic content -->
-                    </div>
-                </div>
+            <!-- NAVIGATION TABS -->
+            <div class="tabs-container fade-in">
+                <button class="tab-btn active" onclick="showTab('resumen')" id="tab-resumen">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Resumen</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('prestamos')" id="tab-prestamos">
+                    <i class="fas fa-handshake"></i>
+                    <span>Mis Préstamos</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('vencimientos')" id="tab-vencimientos">
+                    <i class="fas fa-calendar-exclamation"></i>
+                    <span>Vencimientos</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('historial')" id="tab-historial">
+                    <i class="fas fa-history"></i>
+                    <span>Historial</span>
+                </button>
             </div>
 
-            <!-- PAYMENT HISTORY -->
-            <div class="section-card fade-in">
-                <h3 class="section-title">
-                    <i class="fas fa-history"></i>
-                    Historial de Pagos
-                </h3>
+            <!-- TAB CONTENT CONTAINER -->
+            <div class="tab-content-container fade-in">
                 
-                <div id="pagosContainer">
-                    <!-- Dynamic content -->
+                <!-- RESUMEN TAB -->
+                <div class="tab-content active" id="content-resumen">
+                    <div class="main-grid">
+                        <!-- QUICK OVERVIEW -->
+                        <div class="section-card">
+                            <h3 class="section-title">
+                                <i class="fas fa-chart-pie"></i>
+                                Resumen General
+                            </h3>
+                            <div id="resumenContainer">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+
+                        <!-- UPCOMING PAYMENTS PREVIEW -->
+                        <div class="section-card">
+                            <h3 class="section-title">
+                                <i class="fas fa-calendar-exclamation"></i>
+                                Próximos Vencimientos
+                            </h3>
+                            <div id="vencimientosPreview">
+                                <!-- Dynamic content -->
+                            </div>
+                            <button class="btn-see-more" onclick="showTab('vencimientos')">
+                                <i class="fas fa-arrow-right"></i>
+                                Ver todos los vencimientos
+                            </button>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- PRESTAMOS TAB -->
+                <div class="tab-content" id="content-prestamos">
+                    <div class="section-card">
+                        <h3 class="section-title">
+                            <i class="fas fa-handshake"></i>
+                            Mis Préstamos Detallados
+                        </h3>
+                        <div id="creditosContainer">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VENCIMIENTOS TAB -->
+                <div class="tab-content" id="content-vencimientos">
+                    <div class="section-card">
+                        <h3 class="section-title">
+                            <i class="fas fa-calendar-exclamation"></i>
+                            Todos los Vencimientos
+                        </h3>
+                        <div id="vencimientosContainer">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORIAL TAB -->
+                <div class="tab-content" id="content-historial">
+                    <div class="section-card">
+                        <h3 class="section-title">
+                            <i class="fas fa-history"></i>
+                            Historial Completo de Pagos
+                        </h3>
+                        <div id="pagosContainer">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -901,499 +1191,4 @@
             const cedula = document.getElementById('cedula').value.trim();
             const loginBtn = document.getElementById('loginBtn');
             
-            console.log('🔐 Intentando login con cédula:', cedula);
-            
-            if (!cedula) {
-                showNotification('Por favor ingresa tu cédula', 'error');
-                return;
-            }
-
-            try {
-                loginBtn.disabled = true;
-                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-
-                console.log('🔍 Buscando cliente en base de datos...');
-
-                const { data: cliente, error } = await supabase
-                    .from('clientes')
-                    .select('*')
-                    .eq('cedula', cedula)
-                    .single();
-
-                console.log('📊 Resultado búsqueda:', { cliente, error });
-
-                if (error) {
-                    console.error('❌ Error Supabase:', error);
-                    throw new Error('Cédula no encontrada en el sistema');
-                }
-
-                if (!cliente) {
-                    console.error('❌ Cliente no encontrado');
-                    throw new Error('Cédula no encontrada en el sistema');
-                }
-
-                console.log('✅ Cliente encontrado:', cliente);
-
-                // Save client data
-                clienteData = cliente;
-                localStorage.setItem('portal_client', JSON.stringify(cliente));
-                
-                console.log('💾 Datos del cliente guardados');
-
-                // Show main screen
-                showMainScreen();
-                await loadClientData();
-
-                showNotification(`¡Bienvenido, ${cliente.nombre_completo}!`, 'success');
-
-            } catch (error) {
-                console.error('❌ Error en login:', error);
-                showNotification(error.message || 'Error al iniciar sesión', 'error');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Ingresar a mi Portal';
-            }
-        }
-
-        // SHOW MAIN SCREEN
-        function showMainScreen() {
-            console.log('🖥️ Mostrando pantalla principal');
-            
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'block';
-            
-            // Update header info
-            document.getElementById('userName').textContent = clienteData.nombre_completo;
-            document.getElementById('userCedula').textContent = clienteData.cedula;
-            document.getElementById('welcomeName').textContent = clienteData.nombre_completo.split(' ')[0];
-        }
-
-        // LOAD CLIENT DATA
-        async function loadClientData() {
-            console.log('📊 Cargando datos del cliente:', clienteData.id);
-            
-            try {
-                showLoading(true);
-
-                // Load data in parallel
-                const [creditosData, cuotasData, pagosData] = await Promise.all([
-                    loadCreditos(),
-                    loadCuotas(),
-                    loadPagos()
-                ]);
-
-                console.log('📈 Datos cargados:', { creditosData, cuotasData, pagosData });
-
-                // Update summary
-                updateSummary(creditosData, cuotasData, pagosData);
-                
-                // Render sections
-                renderCreditos(creditosData);
-                renderVencimientos(cuotasData);
-                renderPagos(pagosData);
-
-                showLoading(false);
-
-            } catch (error) {
-                console.error('❌ Error cargando datos:', error);
-                showNotification('Error cargando información: ' + error.message, 'error');
-                showLoading(false);
-            }
-        }
-
-        // LOAD CREDITS
-        async function loadCreditos() {
-            console.log('💰 Cargando créditos para cliente:', clienteData.id);
-            
-            const { data, error } = await supabase
-                .from('creditos')
-                .select('*')
-                .eq('cliente_id', clienteData.id)
-                .in('estado', ['activo', 'completado'])
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('❌ Error cargando créditos:', error);
-                throw error;
-            }
-            
-            console.log('💰 Créditos encontrados:', data);
-            return data || [];
-        }
-
-        // LOAD CUOTAS
-        async function loadCuotas() {
-            console.log('📋 Cargando cuotas para cliente:', clienteData.id);
-            
-            // First get client's credits
-            const { data: creditos, error: errorCreditos } = await supabase
-                .from('creditos')
-                .select('id')
-                .eq('cliente_id', clienteData.id);
-
-            if (errorCreditos) {
-                console.error('❌ Error obteniendo créditos para cuotas:', errorCreditos);
-                throw errorCreditos;
-            }
-
-            if (!creditos || creditos.length === 0) {
-                console.log('ℹ️ Cliente no tiene créditos');
-                return [];
-            }
-
-            // Get cuotas for those credits
-            const creditoIds = creditos.map(c => c.id);
-            
-            const { data: cuotas, error: errorCuotas } = await supabase
-                .from('cuotas')
-                .select(`
-                    *,
-                    creditos (
-                        monto_prestamo
-                    )
-                `)
-                .in('credito_id', creditoIds)
-                .order('fecha_vencimiento');
-
-            if (errorCuotas) {
-                console.error('❌ Error cargando cuotas:', errorCuotas);
-                throw errorCuotas;
-            }
-
-            console.log('📋 Cuotas encontradas:', cuotas);
-            return cuotas || [];
-        }
-
-        // LOAD PAGOS
-        async function loadPagos() {
-            console.log('💳 Cargando pagos para cliente:', clienteData.id);
-            
-            // First get client's credits
-            const { data: creditos, error: errorCreditos } = await supabase
-                .from('creditos')
-                .select('id')
-                .eq('cliente_id', clienteData.id);
-
-            if (errorCreditos) {
-                console.error('❌ Error obteniendo créditos para pagos:', errorCreditos);
-                throw errorCreditos;
-            }
-
-            if (!creditos || creditos.length === 0) {
-                console.log('ℹ️ Cliente no tiene créditos para pagos');
-                return [];
-            }
-
-            // Get cuotas for those credits
-            const creditoIds = creditos.map(c => c.id);
-            
-            const { data: cuotas, error: errorCuotas } = await supabase
-                .from('cuotas')
-                .select('id, numero_cuota')
-                .in('credito_id', creditoIds);
-
-            if (errorCuotas) {
-                console.error('❌ Error obteniendo cuotas para pagos:', errorCuotas);
-                throw errorCuotas;
-            }
-
-            if (!cuotas || cuotas.length === 0) {
-                console.log('ℹ️ Cliente no tiene cuotas para pagos');
-                return [];
-            }
-
-            // Get pagos for those cuotas
-            const cuotaIds = cuotas.map(c => c.id);
-            
-            const { data: pagos, error: errorPagos } = await supabase
-                .from('pagos')
-                .select(`
-                    *,
-                    cuotas (
-                        numero_cuota
-                    )
-                `)
-                .in('cuota_id', cuotaIds)
-                .order('fecha_pago', { ascending: false })
-                .limit(10);
-
-            if (errorPagos) {
-                console.error('❌ Error cargando pagos:', errorPagos);
-                throw errorPagos;
-            }
-
-            console.log('💳 Pagos encontrados:', pagos);
-            return pagos || [];
-        }
-
-        // UPDATE SUMMARY
-        function updateSummary(creditos, cuotas, pagos) {
-            console.log('📊 Actualizando resumen con:', { creditos: creditos.length, cuotas: cuotas.length, pagos: pagos.length });
-            
-            const creditosActivos = creditos.filter(c => c.estado === 'activo');
-            const cuotasPendientes = cuotas.filter(c => c.estado === 'pendiente');
-            const cuotasVencidas = cuotasPendientes.filter(c => new Date(c.fecha_vencimiento) < new Date());
-            
-            const saldoPendiente = cuotasPendientes.reduce((sum, c) => sum + parseFloat(c.monto_cuota || 0), 0);
-            const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.monto_pagado || 0), 0);
-
-            // Update values
-            document.getElementById('totalCreditos').textContent = creditosActivos.length;
-            document.getElementById('saldoPendiente').textContent = formatCurrency(saldoPendiente);
-            document.getElementById('cuotasVencidas').textContent = cuotasVencidas.length;
-            document.getElementById('totalPagado').textContent = formatCurrency(totalPagado);
-
-            // Update colors based on status
-            const saldoElement = document.getElementById('saldoPendiente');
-            if (saldoPendiente > 0) {
-                saldoElement.className = 'stat-value status-warning';
-            } else {
-                saldoElement.className = 'stat-value status-success';
-            }
-
-            const vencidasElement = document.getElementById('cuotasVencidas');
-            if (cuotasVencidas.length > 0) {
-                vencidasElement.className = 'stat-value status-danger';
-            } else {
-                vencidasElement.className = 'stat-value status-success';
-            }
-
-            console.log('📊 Resumen actualizado:', {
-                creditosActivos: creditosActivos.length,
-                saldoPendiente,
-                cuotasVencidas: cuotasVencidas.length,
-                totalPagado
-            });
-        }
-
-        // RENDER CREDITOS
-        function renderCreditos(creditos) {
-            console.log('🏦 Renderizando créditos:', creditos);
-            
-            const container = document.getElementById('creditosContainer');
-            
-            if (creditos.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-handshake"></i></div>
-                        <h3>No tienes préstamos registrados</h3>
-                        <p>Contacta a nuestro equipo para solicitar un préstamo</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="modern-table">
-                    <thead>
-                        <tr>
-                            <th>Monto</th>
-                            <th>Cuotas</th>
-                            <th>Tasa</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${creditos.map(credito => `
-                            <tr>
-                                <td>
-                                    <div style="font-weight: 700; font-size: 1.1rem;">
-                                        ${formatCurrency(credito.monto_prestamo)}
-                                    </div>
-                                    <div style="font-size: 0.85rem; color: #718096;">
-                                        ${credito.frecuencia_pago || 'Mensual'}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style="font-weight: 600;">
-                                        ${credito.numero_cuotas} cuotas
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style="font-weight: 600;">
-                                        ${credito.tasa_interes || 0}%
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="status-badge status-${credito.estado}">
-                                        ${credito.estado}
-                                    </span>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        // RENDER VENCIMIENTOS
-        function renderVencimientos(cuotas) {
-            console.log('⏰ Renderizando vencimientos:', cuotas);
-            
-            const container = document.getElementById('vencimientosContainer');
-            const cuotasPendientes = cuotas.filter(c => c.estado === 'pendiente');
-            
-            // Sort by due date
-            cuotasPendientes.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
-            
-            // Take only next 5
-            const proximasCuotas = cuotasPendientes.slice(0, 5);
-
-            if (proximasCuotas.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-check-circle"></i></div>
-                        <h3>¡Todo al día!</h3>
-                        <p>No tienes cuotas próximas a vencer</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const today = new Date();
-            
-            container.innerHTML = proximasCuotas.map(cuota => {
-                const dueDate = new Date(cuota.fecha_vencimiento);
-                const daysRemaining = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-                
-                let urgencyClass = 'normal';
-                let urgencyText = '';
-                
-                if (daysRemaining < 0) {
-                    urgencyClass = 'urgent';
-                    urgencyText = `Vencida hace ${Math.abs(daysRemaining)} días`;
-                } else if (daysRemaining === 0) {
-                    urgencyClass = 'urgent';
-                    urgencyText = 'Vence hoy';
-                } else if (daysRemaining <= 3) {
-                    urgencyClass = 'warning';
-                    urgencyText = `Vence en ${daysRemaining} días`;
-                } else {
-                    urgencyText = `Vence en ${daysRemaining} días`;
-                }
-
-                return `
-                    <div class="upcoming-item ${urgencyClass}">
-                        <div class="upcoming-date ${urgencyClass === 'urgent' ? 'status-danger' : urgencyClass === 'warning' ? 'status-warning' : 'status-success'}">
-                            ${dueDate.toLocaleDateString('es-EC')}
-                        </div>
-                        <div class="upcoming-amount">
-                            Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)}
-                        </div>
-                        <div class="upcoming-days">
-                            ${urgencyText}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // RENDER PAGOS
-        function renderPagos(pagos) {
-            console.log('💰 Renderizando pagos:', pagos);
-            
-            const container = document.getElementById('pagosContainer');
-            
-            if (pagos.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-receipt"></i></div>
-                        <h3>No hay pagos registrados</h3>
-                        <p>Tus pagos aparecerán aquí una vez realizados</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="timeline">
-                    ${pagos.map(pago => `
-                        <div class="timeline-item">
-                            <div class="timeline-date">
-                                ${new Date(pago.fecha_pago).toLocaleDateString('es-EC')}
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-title">
-                                    Cuota #${pago.cuotas?.numero_cuota || 'N/A'} - ${pago.metodo_pago || 'Efectivo'}
-                                </div>
-                                <div class="timeline-amount">
-                                    ${formatCurrency(pago.monto_pagado)}
-                                </div>
-                                ${pago.observaciones ? `
-                                    <div style="font-size: 0.85rem; color: #718096; margin-top: 0.5rem;">
-                                        ${pago.observaciones}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        // UTILITIES
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('es-EC', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(amount || 0);
-        }
-
-        function showNotification(message, type = 'success') {
-            console.log(`📢 Notificación (${type}):`, message);
-            
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
-                ${message}
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 4000);
-        }
-
-        function showLoading(show) {
-            document.getElementById('loadingScreen').style.display = show ? 'flex' : 'none';
-        }
-
-        function logout() {
-            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-                console.log('👋 Cerrando sesión');
-                
-                localStorage.removeItem('portal_client');
-                clienteData = null;
-                
-                document.getElementById('mainScreen').style.display = 'none';
-                document.getElementById('loginScreen').style.display = 'flex';
-                document.getElementById('cedula').value = '';
-                
-                showNotification('Sesión cerrada correctamente', 'success');
-            }
-        }
-
-        // DEBUG FUNCTION
-        function debugClientData() {
-            console.log('🔍 DEBUG - Estado actual:');
-            console.log('clienteData:', clienteData);
-            console.log('localStorage:', localStorage.getItem('portal_client'));
-            
-            if (clienteData) {
-                console.log('✅ Cliente ID:', clienteData.id);
-                console.log('✅ Cliente nombre:', clienteData.nombre_completo);
-            } else {
-                console.log('❌ clienteData está undefined');
-            }
-        }
-
-        // Make debug function globally available
-        window.debugClientData = debugClientData;
-
-    </script>
-</body>
-</html>
+            console.log('
