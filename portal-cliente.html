@@ -343,6 +343,49 @@
             transform: rotate(180deg);
         }
 
+        /* FILTRO DE PAGOS */
+        .filter-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .filter-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #2d3748;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 180px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-select:hover {
+            border-color: #667eea;
+        }
+
         /* COLLAPSIBLE CONTENT */
         .collapsible-content {
             overflow: hidden;
@@ -748,9 +791,14 @@
                 padding: 18px 30px;
             }
 
-            .credit-stats {
+            .filter-container {
                 flex-direction: column;
                 gap: 0.5rem;
+                align-items: flex-start;
+            }
+
+            .filter-select {
+                min-width: 100%;
             }
         }
 
@@ -919,6 +967,19 @@
                 </h3>
                 
                 <div id="pagosContent" class="collapsible-content">
+                    <!-- FILTRO DE PAGOS -->
+                    <div class="filter-container">
+                        <label for="filtroCreditos" class="filter-label">
+                            <i class="fas fa-filter"></i>
+                            Mostrar pagos de:
+                        </label>
+                        <select id="filtroCreditos" class="filter-select" onchange="aplicarFiltroPagos()">
+                            <option value="activos">Créditos activos</option>
+                            <option value="cancelados">Créditos cancelados</option>
+                            <option value="todos">Todos los créditos</option>
+                        </select>
+                    </div>
+                    
                     <div id="pagosContainer">
                         <!-- Dynamic content -->
                     </div>
@@ -939,6 +1000,8 @@
         // GLOBAL VARIABLES
         let supabase = null;
         let clienteData = null;
+        let allPagos = []; // Almacenar todos los pagos
+        let allCreditos = []; // Almacenar todos los créditos
 
         // SUPABASE CONFIGURATION - OPTIMIZADO PARA ACCESO PÚBLICO
         function initSupabase() {
@@ -1092,13 +1155,17 @@
 
                 console.log('📈 Datos cargados:', { creditosData, cuotasData, pagosData });
 
+                // Store all data for filtering
+                allCreditos = creditosData;
+                allPagos = pagosData;
+
                 // Update summary
                 await updateSummary(creditosData, cuotasData, pagosData);
                 
                 // Render sections
                 await renderCreditos(creditosData);
                 renderVencimientos(cuotasData);
-                renderPagos(pagosData);
+                renderPagos(pagosData, 'activos'); // Por defecto muestra créditos activos
 
                 showLoading(false);
 
@@ -1172,7 +1239,7 @@
             return cuotas || [];
         }
 
-        // LOAD PAGOS
+        // LOAD PAGOS - AHORA CARGA TODOS SIN LÍMITE INICIAL
         async function loadPagos() {
             console.log('💳 Cargando pagos para cliente:', clienteData.id);
             
@@ -1197,7 +1264,7 @@
             
             const { data: cuotas, error: errorCuotas } = await supabase
                 .from('cuotas')
-                .select('id, numero_cuota')
+                .select('id, numero_cuota, credito_id')
                 .in('credito_id', creditoIds);
 
             if (errorCuotas) {
@@ -1219,12 +1286,12 @@
                     *,
                     cuotas (
                         id,
-                        numero_cuota
+                        numero_cuota,
+                        credito_id
                     )
                 `)
                 .in('cuota_id', cuotaIds)
-                .order('fecha_pago', { ascending: false })
-                .limit(10);
+                .order('fecha_pago', { ascending: false });
 
             if (errorPagos) {
                 console.error('❌ Error cargando pagos:', errorPagos);
@@ -1235,14 +1302,14 @@
             return pagos || [];
         }
 
-        // GET CREDIT PAYMENT STATS
+        // GET CREDIT PAYMENT STATS - CORREGIDO PARA CALCULAR POR PAGOS REALES
         async function getCreditPaymentStats(creditoId) {
-            console.log('📊 Obteniendo estadísticas de pago para crédito:', creditoId);
+            console.log('📊 Obteniendo estadísticas REALES de pago para crédito:', creditoId);
             
             // Get all cuotas for this credit
             const { data: cuotas, error: errorCuotas } = await supabase
                 .from('cuotas')
-                .select('id, estado')
+                .select('id, monto_cuota')
                 .eq('credito_id', creditoId);
 
             if (errorCuotas) {
@@ -1250,9 +1317,37 @@
                 return { pagadas: 0, pendientes: 0 };
             }
 
-            const cuotasPagadas = cuotas.filter(c => c.estado === 'pagado').length;
-            const cuotasPendientes = cuotas.filter(c => c.estado === 'pendiente').length;
+            let cuotasPagadas = 0;
+            let cuotasPendientes = 0;
 
+            // Para cada cuota, verificar si está totalmente pagada
+            for (const cuota of cuotas) {
+                // Obtener todos los pagos de esta cuota
+                const { data: pagos, error: errorPagos } = await supabase
+                    .from('pagos')
+                    .select('monto_pagado')
+                    .eq('cuota_id', cuota.id);
+
+                if (errorPagos) {
+                    console.error('❌ Error obteniendo pagos para cuota:', cuota.id);
+                    cuotasPendientes++;
+                    continue;
+                }
+
+                // Sumar todos los pagos de esta cuota
+                const totalPagado = pagos.reduce((sum, pago) => 
+                    sum + parseFloat(pago.monto_pagado || 0), 0
+                );
+
+                // Comparar con el monto de la cuota
+                if (totalPagado >= parseFloat(cuota.monto_cuota)) {
+                    cuotasPagadas++;
+                } else {
+                    cuotasPendientes++;
+                }
+            }
+
+            console.log(`📊 Crédito ${creditoId}: ${cuotasPagadas} pagadas, ${cuotasPendientes} pendientes`);
             return { pagadas: cuotasPagadas, pendientes: cuotasPendientes };
         }
 
@@ -1481,18 +1576,83 @@
             }).join('');
         }
 
-        // RENDER PAGOS
-        function renderPagos(pagos) {
-            console.log('💰 Renderizando pagos:', pagos);
+        // APLICAR FILTRO DE PAGOS CON LÓGICA MEJORADA
+        function aplicarFiltroPagos() {
+            const filtro = document.getElementById('filtroCreditos').value;
+            console.log('🔍 Aplicando filtro de pagos:', filtro);
+            
+            let pagosFiltrados = allPagos;
+            
+            if (filtro === 'activos') {
+                // Filtrar solo pagos de créditos ACTIVOS
+                const creditosActivos = allCreditos.filter(c => c.estado === 'activo');
+                const creditosActivosIds = creditosActivos.map(c => c.id);
+                
+                pagosFiltrados = allPagos.filter(pago => {
+                    return creditosActivosIds.includes(pago.cuotas?.credito_id);
+                });
+                
+                console.log('📊 Pagos de créditos activos:', pagosFiltrados.length);
+                
+            } else if (filtro === 'cancelados') {
+                // Filtrar solo pagos de créditos CANCELADOS/COMPLETADOS
+                const creditosCancelados = allCreditos.filter(c => 
+                    c.estado === 'cancelado' || 
+                    c.estado === 'completado' || 
+                    c.estado === 'finalizado'
+                );
+                const creditosCanceladosIds = creditosCancelados.map(c => c.id);
+                
+                pagosFiltrados = allPagos.filter(pago => {
+                    return creditosCanceladosIds.includes(pago.cuotas?.credito_id);
+                });
+                
+                console.log('📊 Pagos de créditos cancelados:', pagosFiltrados.length);
+                
+            } else {
+                // Mostrar TODOS los pagos
+                console.log('📊 Mostrando todos los pagos:', pagosFiltrados.length);
+            }
+            
+            // Limitar a 4 pagos más recientes
+            const pagosLimitados = pagosFiltrados.slice(0, 4);
+            
+            renderPagos(pagosLimitados, filtro);
+        }
+
+        // RENDER PAGOS - AHORA RECIBE PAGOS FILTRADOS
+        // RENDER PAGOS - CON MENSAJES ESPECÍFICOS POR FILTRO
+        function renderPagos(pagos, filtroActual = 'activos') {
+            console.log('💰 Renderizando pagos filtrados:', pagos);
             
             const container = document.getElementById('pagosContainer');
             
-            if (pagos.length === 0) {
+            // Limitar a 4 pagos para mantener página corta
+            const pagosLimitados = pagos.slice(0, 4);
+            
+            if (pagosLimitados.length === 0) {
+                let mensaje = '';
+                let descripcion = '';
+                
+                switch(filtroActual) {
+                    case 'activos':
+                        mensaje = 'No hay pagos de créditos activos';
+                        descripcion = 'Los pagos de tus créditos activos aparecerán aquí';
+                        break;
+                    case 'cancelados':
+                        mensaje = 'No hay pagos de créditos cancelados';
+                        descripcion = 'Los pagos de créditos anteriores aparecerían aquí';
+                        break;
+                    default:
+                        mensaje = 'No hay pagos registrados';
+                        descripcion = 'Tus pagos aparecerán aquí una vez realizados';
+                }
+                    
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fas fa-receipt"></i></div>
-                        <h3>No hay pagos registrados</h3>
-                        <p>Tus pagos aparecerán aquí una vez realizados</p>
+                        <h3>${mensaje}</h3>
+                        <p>${descripcion}</p>
                     </div>
                 `;
                 return;
@@ -1500,7 +1660,7 @@
 
             container.innerHTML = `
                 <div class="timeline">
-                    ${pagos.map(pago => `
+                    ${pagosLimitados.map(pago => `
                         <div class="timeline-item">
                             <div class="timeline-date">
                                 ${new Date(pago.fecha_pago).toLocaleDateString('es-EC')}
@@ -1521,6 +1681,11 @@
                         </div>
                     `).join('')}
                 </div>
+                ${pagos.length > 4 ? `
+                    <div style="text-align: center; margin-top: 1rem; color: #718096; font-size: 0.9rem;">
+                        Mostrando los 4 pagos más recientes de ${pagos.length} totales
+                    </div>
+                ` : ''}
             `;
         }
 
@@ -1588,6 +1753,7 @@
         window.login = login;
         window.logout = logout;
         window.toggleSection = toggleSection;
+        window.aplicarFiltroPagos = aplicarFiltroPagos;
         window.debugClientData = debugClientData;
 
     </script>
