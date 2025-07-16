@@ -676,8 +676,7 @@ select option[style*="f8d7da"] {
 select option[style*="fff3cd"] {
     background-color: #fff3cd !important;
     color: #856404 !important;
-
-        }
+}
     </style>
 </head>
 <body>
@@ -1228,8 +1227,7 @@ async function loadCuotasPendientes() {
                     )
                 )
             `)
-            .eq('creditos.cliente_id', clienteId)
-            .order('creditos.fecha_inicio', { ascending: true })
+            .eq('creditos.cliente_id', clienteId) 
             .order('numero_cuota', { ascending: true });
 
         if (error) throw error;
