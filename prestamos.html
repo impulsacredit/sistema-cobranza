@@ -576,19 +576,20 @@
             margin-bottom: 1rem;
         }
 
-        /* NOTIFICACIONES */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            z-index: 1001;
-            animation: slideInRight 0.3s ease;
-            max-width: 400px;
-        }
+       .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    z-index: 1001;
+    animation: slideInRight 0.3s ease;
+    max-width: 450px;
+    white-space: pre-line;
+    line-height: 1.4;
+}
 
         .notification.success {
             background: linear-gradient(45deg, #48bb78, #38a169);
@@ -1368,13 +1369,25 @@ async function saveLoan(event) {
                         .insert([loanData])
                         .select();
 
-                    // Si es nuevo préstamo, generar cuotas
-                    if (result.data && result.data[0]) {
-                        await generateCuotas(result.data[0]);
-                    }
-                }
+                   // Si es nuevo préstamo, generar cuotas
+if (result.data && result.data[0]) {
+    await generateCuotas(result.data[0]);
+}
 
-                if (result.error) throw result.error;
+// Registrar transacción de egreso para nuevo préstamo
+if (!editingLoanId && result.data && result.data[0]) {
+    await registrarTransaccion({
+        tipo: 'egreso',
+        monto: monto,
+        descripcion: `Préstamo otorgado a ${clientes.find(c => c.id === formData.get('cliente_id'))?.nombre_completo}`,
+        credito_id: result.data[0].id
+    });
+    
+    // Actualizar saldo en caja
+    await loadSaldoCaja();
+}
+
+if (result.error) throw result.error;
 
                 showNotification(
                     editingLoanId ? 'Préstamo actualizado exitosamente' : 'Préstamo creado exitosamente',
@@ -1630,6 +1643,24 @@ async function generateCuotas(prestamo) {
                 window.location.href = './';
             }
         }
+    // REGISTRAR TRANSACCIÓN
+async function registrarTransaccion(transaccion) {
+    try {
+        const { error } = await supabase
+            .from('transacciones')
+            .insert([{
+                ...transaccion,
+                fecha: new Date().toISOString().split('T')[0],
+                created_at: new Date().toISOString()
+            }]);
+
+        if (error) throw error;
+
+    } catch (error) {
+        console.error('Error registrando transacción:', error);
+        // No mostramos error al usuario para no interrumpir el flujo principal
+    }
+}
 
         // EVENTOS DE TECLADO
         document.addEventListener('keydown', function(event) {
