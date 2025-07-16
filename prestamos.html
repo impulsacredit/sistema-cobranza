@@ -201,6 +201,7 @@
         .stat-card.success { border-left-color: #48bb78; }
         .stat-card.warning { border-left-color: #ed8936; }
         .stat-card.danger { border-left-color: #f56565; }
+        .stat-card.info { border-left-color: #4299e1; }
 
         .stat-value {
             font-size: 2rem;
@@ -720,6 +721,10 @@
             <div class="stat-card danger">
                 <div class="stat-value" id="montoPromedio">$0</div>
                 <div class="stat-label">Promedio por Préstamo</div>
+                </div>
+                <div class="stat-card info">
+               <div class="stat-value" id="saldoCaja">$0</div>
+               <div class="stat-label">Saldo en Caja</div>
             </div>
         </div>
 
@@ -985,6 +990,7 @@
         let filteredPrestamos = [];
         let clientes = [];
         let editingLoanId = null;
+        let saldoCaja = 0;
 
         // INICIALIZACIÓN
         document.addEventListener('DOMContentLoaded', function() {
@@ -1028,91 +1034,81 @@
         }
 
         // CARGAR DATOS INICIALES
-        async function loadData() {
-            try {
-                await Promise.all([
-                    loadClientes(),
-                    loadPrestamos()
-                ]);
-            } catch (error) {
-                console.error('Error cargando datos:', error);
-                showNotification('Error cargando datos: ' + error.message, 'error');
-            }
-        }
+async function loadData() {
+    try {
+        await Promise.all([
+            loadClientes(),
+            loadPrestamos(),
+            loadSaldoCaja()
+        ]);
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+        showNotification('Error cargando datos: ' + error.message, 'error');
+    }
+}
 
-        // CARGAR CLIENTES PARA SELECT
-        async function loadClientes() {
-            try {
-                const { data, error } = await supabase
-                    .from('clientes')
-                    .select('id, nombre_completo, cedula')
-                    .order('nombre_completo');
+       // CARGAR CLIENTES PARA SELECT
+async function loadClientes() {
+    try {
+        const { data, error } = await supabase
+            .from('clientes')
+            .select('id, nombre_completo, cedula')
+            .order('nombre_completo');
 
-                if (error) throw error;
+        if (error) throw error;
 
-                clientes = data || [];
-                
-                // Llenar select de clientes
-                const clienteSelect = document.getElementById('cliente_id');
-                clienteSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
-                
-                clientes.forEach(cliente => {
-                    const option = document.createElement('option');
-                    option.value = cliente.id;
-                    option.textContent = `${cliente.nombre_completo} (CI: ${cliente.cedula})`;
-                    clienteSelect.appendChild(option);
-                });
+        clientes = data || [];
+        
+        // Llenar select de clientes
+        const clienteSelect = document.getElementById('cliente_id');
+        clienteSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
+        
+        clientes.forEach(cliente => {
+            const option = document.createElement('option');
+            option.value = cliente.id;
+            option.textContent = `${cliente.nombre_completo} (CI: ${cliente.cedula})`;
+            clienteSelect.appendChild(option);
+        });
 
-            } catch (error) {
-                console.error('Error cargando clientes:', error);
-                showNotification('Error cargando clientes: ' + error.message, 'error');
-            }
-        }
+    } catch (error) {
+        console.error('Error cargando clientes:', error);
+        showNotification('Error cargando clientes: ' + error.message, 'error');
+    }
+}
 
-        // CARGAR PRÉSTAMOS
-        async function loadPrestamos() {
-            try {
-                document.getElementById('loadingPrestamos').style.display = 'flex';
-                document.getElementById('prestamosContainer').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'none';
+// CARGAR SALDO EN CAJA
+async function loadSaldoCaja() {
+    try {
+        // Obtener ingresos (pagos recibidos)
+        const { data: ingresos, error: errorIngresos } = await supabase
+            .from('transacciones')
+            .select('monto')
+            .eq('tipo', 'ingreso');
 
-                const { data, error } = await supabase
-                    .from('creditos')
-                    .select(`
-                        *,
-                        clientes (
-                            id,
-                            nombre_completo,
-                            cedula
-                        )
-                    `)
-                    .order('created_at', { ascending: false });
+        // Obtener egresos (préstamos otorgados)
+        const { data: egresos, error: errorEgresos } = await supabase
+            .from('transacciones')
+            .select('monto')
+            .eq('tipo', 'egreso');
 
-                if (error) throw error;
+        if (errorIngresos) throw errorIngresos;
+        if (errorEgresos) throw errorEgresos;
 
-                prestamos = data || [];
-                filteredPrestamos = [...prestamos];
-                
-                updateStats();
-                renderPrestamos();
-                
-                document.getElementById('loadingPrestamos').style.display = 'none';
-                
-                if (prestamos.length === 0) {
-                    document.getElementById('emptyState').style.display = 'block';
-                } else {
-                    document.getElementById('prestamosContainer').style.display = 'block';
-                }
+        const totalIngresos = (ingresos || []).reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
+        const totalEgresos = (egresos || []).reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
 
-            } catch (error) {
-                console.error('Error cargando préstamos:', error);
-                document.getElementById('loadingPrestamos').style.display = 'none';
-                showNotification('Error cargando préstamos: ' + error.message, 'error');
-            }
-        }
+        saldoCaja = totalIngresos - totalEgresos;
+        
+        // Actualizar UI
+        document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
 
+    } catch (error) {
+        console.error('Error cargando saldo en caja:', error);
+        saldoCaja = 0;
+        document.getElementById('saldoCaja').textContent = '$0.00';
+    }
         // ACTUALIZAR ESTADÍSTICAS
-        function updateStats() {
+         function updateStats() {
             const total = prestamos.length;
             const activos = prestamos.filter(p => p.estado === 'activo').length;
             const montoTotal = prestamos
@@ -1299,26 +1295,47 @@
             return date;
         }
 
-        // GUARDAR PRÉSTAMO
-        async function saveLoan(event) {
-            event.preventDefault();
-            
-            const form = event.target;
-            const formData = new FormData(form);
-            
-            const monto = parseFloat(formData.get('monto_prestamo'));
-            const tasa = parseFloat(formData.get('tasa_interes'));
-            const cuotas = parseInt(formData.get('numero_cuotas'));
-            const frecuencia = formData.get('frecuencia_pago');
-            const fechaInicio = new Date(formData.get('fecha_inicio'));
+         // GUARDAR PRÉSTAMO
+async function saveLoan(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const monto = parseFloat(formData.get('monto_prestamo'));
+    const tasa = parseFloat(formData.get('tasa_interes'));
+    const cuotas = parseInt(formData.get('numero_cuotas'));
+    const frecuencia = formData.get('frecuencia_pago');
+    const fechaInicio = new Date(formData.get('fecha_inicio'));
 
-            // Calcular valores
-            const tasaDecimal = tasa / 100;
-            const montoTotal = monto * (1 + tasaDecimal);
-            const montoCuota = montoTotal / cuotas;
-            const fechaVencimiento = calculateEndDate(fechaInicio, cuotas, frecuencia);
+    // Validar saldo en caja solo para préstamos nuevos
+    if (!editingLoanId) {
+        const montoSolicitado = parseFloat(formData.get('monto_prestamo'));
+        
+        if (montoSolicitado > saldoCaja) {
+            showNotification(
+                `❌ Fondos Insuficientes\n\nEl monto del préstamo ($${montoSolicitado.toLocaleString('es-EC', {minimumFractionDigits: 2})}) supera el saldo disponible en caja ($${saldoCaja.toLocaleString('es-EC', {minimumFractionDigits: 2})}).\n\nDebe ingresar fondos antes de otorgar este préstamo.`, 
+                'error'
+            );
+            return;
+        }
 
-            const loanData = {
+        // Validar que quede un mínimo en caja después del préstamo
+        const saldoRestante = saldoCaja - montoSolicitado;
+        if (saldoRestante < 100) {
+            if (!confirm(`⚠️ Advertencia de Liquidez\n\nDespués de este préstamo quedarán solo $${saldoRestante.toLocaleString('es-EC', {minimumFractionDigits: 2})} en caja.\n\n¿Está seguro de continuar?`)) {
+                return;
+            }
+        }
+    }
+
+    // Calcular valores
+    const tasaDecimal = tasa / 100;
+    const montoTotal = monto * (1 + tasaDecimal);
+    const montoCuota = montoTotal / cuotas;
+    const fechaVencimiento = calculateEndDate(fechaInicio, cuotas, frecuencia);
+
+           const loanData = {
                 cliente_id: formData.get('cliente_id'),
                 monto_prestamo: monto,
                 tasa_interes: tasa,
