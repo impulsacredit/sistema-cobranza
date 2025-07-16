@@ -1235,22 +1235,20 @@ async function loadCuotasPendientes() {
 
     try {
         // Obtener TODAS las cuotas del cliente (pendientes Y pagadas)
-        const { data, error } = await supabase
-            .from('cuotas')
-            .select(`
-                *,
-                creditos!inner (
-                    cliente_id,
-                    monto_prestamo,
-                    fecha_inicio,
-                    clientes (
-                        nombre_completo
-                    )
-                )
-            `)
-            .eq('creditos.cliente_id', clienteId) 
-            .order('numero_cuota', { ascending: true });
-
+       const { data, error } = await supabase
+    .from('cuotas')
+    .select(`
+        *,
+        creditos!inner (
+            cliente_id,
+            monto_prestamo,
+            fecha_inicio,
+            clientes (
+                nombre_completo
+            )
+        )
+    `)
+    .eq('creditos.cliente_id', clienteId);
         if (error) throw error;
 
         const todasLasCuotas = data || [];
