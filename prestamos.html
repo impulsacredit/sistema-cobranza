@@ -1108,20 +1108,22 @@ async function loadSaldoCaja() {
         saldoCaja = 0;
         document.getElementById('saldoCaja').textContent = '$0.00';
     }
-        // ACTUALIZAR ESTADÍSTICAS
-         function updateStats() {
-            const total = prestamos.length;
-            const activos = prestamos.filter(p => p.estado === 'activo').length;
-            const montoTotal = prestamos
-                .filter(p => p.estado === 'activo')
-                .reduce((sum, p) => sum + (parseFloat(p.monto_prestamo) || 0), 0);
-            const promedio = activos > 0 ? montoTotal / activos : 0;
+}
 
-            document.getElementById('totalPrestamos').textContent = total;
-            document.getElementById('prestamosActivos').textContent = activos;
-            document.getElementById('montoTotal').textContent = formatCurrency(montoTotal);
-            document.getElementById('montoPromedio').textContent = formatCurrency(promedio);
-        }
+// ACTUALIZAR ESTADÍSTICAS
+function updateStats() {
+    const total = prestamos.length;
+    const activos = prestamos.filter(p => p.estado === 'activo').length;
+    const montoTotal = prestamos
+        .filter(p => p.estado === 'activo')
+        .reduce((sum, p) => sum + (parseFloat(p.monto_prestamo) || 0), 0);
+    const promedio = activos > 0 ? montoTotal / activos : 0;
+
+    document.getElementById('totalPrestamos').textContent = total;
+    document.getElementById('prestamosActivos').textContent = activos;
+    document.getElementById('montoTotal').textContent = formatCurrency(montoTotal);
+    document.getElementById('montoPromedio').textContent = formatCurrency(promedio);
+}
 
         // RENDERIZAR TABLA
         function renderPrestamos() {
@@ -1385,8 +1387,6 @@ if (!editingLoanId && result.data && result.data[0]) {
     
     // Actualizar saldo en caja
     await loadSaldoCaja();
-}
-
 if (result.error) throw result.error;
 
                 showNotification(
@@ -1408,6 +1408,47 @@ if (result.error) throw result.error;
             }
         }
 
+        // CARGAR PRÉSTAMOS
+async function loadPrestamos() {
+    try {
+        document.getElementById('loadingPrestamos').style.display = 'flex';
+        document.getElementById('prestamosContainer').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+
+        const { data, error } = await supabase
+            .from('creditos')
+            .select(`
+                *,
+                clientes (
+                    id,
+                    nombre_completo,
+                    cedula
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        prestamos = data || [];
+        filteredPrestamos = [...prestamos];
+        
+        updateStats();
+        renderPrestamos();
+        
+        document.getElementById('loadingPrestamos').style.display = 'none';
+        
+        if (prestamos.length === 0) {
+            document.getElementById('emptyState').style.display = 'block';
+        } else {
+            document.getElementById('prestamosContainer').style.display = 'block';
+        }
+
+    } catch (error) {
+        console.error('Error cargando préstamos:', error);
+        document.getElementById('loadingPrestamos').style.display = 'none';
+        showNotification('Error cargando préstamos: ' + error.message, 'error');
+    }
+}
         // GENERAR CUOTAS
 // GENERAR CUOTAS
 async function generateCuotas(prestamo) {
