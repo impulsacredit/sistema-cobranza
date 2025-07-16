@@ -1320,7 +1320,7 @@
                 return;
             }
 
-            const cuota = cuotasPendientes.find(c => c.id === cuotaId);
+            const cuota = window.cuotasPendientes.find(c => c.id === cuotaId);
             if (!cuota) return;
 
             // Calcular días de atraso
@@ -1358,7 +1358,7 @@
             
             // Obtener cuota seleccionada
             const cuotaId = formData.get('cuota_id');
-            const cuota = cuotasPendientes.find(c => c.id === cuotaId);
+            const cuota = window.cuotasPendientes.find(c => c.id === cuotaId);
             
             if (!cuota) {
                 showNotification('Error: No se encontró la cuota seleccionada', 'error');
@@ -1653,12 +1653,18 @@
             closePendingModal();
             openAddPaymentModal();
             
-            // Preseleccionar cliente
+            // Preseleccionar cliente y crédito
             document.getElementById('cliente_id').value = clienteId;
             loadCuotasPendientes().then(() => {
-                // Preseleccionar cuota
-                document.getElementById('cuota_id').value = cuotaId;
-                loadCuotaDetails();
+                // Buscar el crédito de la cuota seleccionada
+                const cuota = cuotasPendientes.find(c => c.id === cuotaId);
+                if (cuota) {
+                    document.getElementById('credito_id').value = cuota.credito_id;
+                    loadCuotasPorCredito().then(() => {
+                        document.getElementById('cuota_id').value = cuotaId;
+                        loadCuotaDetails();
+                    });
+                }
             });
         }
 
@@ -1732,7 +1738,7 @@
             
             if (!cuotaId) return;
             
-            const cuota = cuotasPendientes.find(c => c.id === cuotaId);
+            const cuota = window.cuotasPendientes.find(c => c.id === cuotaId);
             if (!cuota) return;
             
             const montoCuota = parseFloat(cuota.monto_cuota);
