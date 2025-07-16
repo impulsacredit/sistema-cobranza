@@ -1080,11 +1080,30 @@ async function loadClientes() {
 // CARGAR SALDO EN CAJA
 async function loadSaldoCaja() {
     try {
-        // Obtener ingresos (pagos recibidos)
-        const { data: ingresos, error: errorIngresos } = await supabase
-            .from('transacciones')
-            .select('monto')
-            .eq('tipo', 'ingreso');
+        // Obtener movimientos de caja
+        const { data: movimientos, error } = await supabase
+            .from('movimientos_caja')
+            .select('monto, tipo');
+
+        if (error) throw error;
+
+        const ingresos = (movimientos || []).filter(m => m.tipo === 'ingreso');
+        const egresos = (movimientos || []).filter(m => m.tipo === 'egreso');
+
+        const totalIngresos = ingresos.reduce((sum, m) => sum + parseFloat(m.monto || 0), 0);
+        const totalEgresos = egresos.reduce((sum, m) => sum + parseFloat(m.monto || 0), 0);
+
+        saldoCaja = totalIngresos - totalEgresos;
+        
+        // Actualizar UI
+        document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
+
+    } catch (error) {
+        console.error('Error cargando saldo en caja:', error);
+        saldoCaja = 0;
+        document.getElementById('saldoCaja').textContent = '$0.00';
+    }
+}
 
         // Obtener egresos (préstamos otorgados)
         const { data: egresos, error: errorEgresos } = await supabase
