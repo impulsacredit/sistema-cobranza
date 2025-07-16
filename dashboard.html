@@ -593,7 +593,7 @@
                     <div class="stat-header">
                         <div>
                             <div class="stat-value" id="totalPrestado">$0</div>
-                            <div class="stat-label">Total Prestado</div>
+                            <div class="stat-label">Total Cartera</div>
                             <div class="stat-change positive" id="prestadoChange">Capital activo</div>
                         </div>
                         <div class="stat-icon info">
@@ -805,7 +805,7 @@
             }).format(amount || 0);
         }
 
-       // CARGAR ESTADÍSTICAS PRINCIPALES
+      // CARGAR ESTADÍSTICAS PRINCIPALES
 async function loadMainStats() {
     try {
         // Total clientes
@@ -819,7 +819,25 @@ async function loadMainStats() {
             .select('*', { count: 'exact', head: true })
             .eq('estado', 'activo');
 
-        // Total prestado
+        // ✅ CAPITAL DE INVERSIONES
+        const { data: inversionesData } = await supabase
+            .from('inversiones')
+            .select('monto, estado')
+            .eq('estado', 'activo');
+
+        const totalInversiones = inversionesData?.reduce((sum, inv) => 
+            sum + (parseFloat(inv.monto) || 0), 0) || 0;
+
+        // ✅ TOTAL A COBRAR (CAPITAL + INTERÉS)
+        const { data: creditosData } = await supabase
+            .from('creditos')
+            .select('monto_total')  // Aquí usas monto_total que incluye interés
+            .eq('estado', 'activo');
+
+        const totalACobrar = creditosData?.reduce((sum, credito) => 
+            sum + (parseFloat(credito.monto_total) || 0), 0) || 0;
+
+        // ✅ TOTAL PRESTADO (SOLO CAPITAL SIN INTERÉS)
         const { data: totalPrestadoData } = await supabase
             .from('creditos')
             .select('monto_prestamo')
@@ -828,16 +846,8 @@ async function loadMainStats() {
         const totalPrestado = totalPrestadoData?.reduce((sum, credito) => 
             sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
 
-        // ✅ NUEVO: Capital de inversiones
-        const { data: inversionesData } = await supabase
-            .from('inversiones')
-            .select('monto, estado')
-            .eq('estado', 'activo');
-
-        const capitalTotal = inversionesData?.reduce((sum, inv) => 
-            sum + (parseFloat(inv.monto) || 0), 0) || 0;
-
-        const capitalDisponible = capitalTotal - totalPrestado;
+        // Capital disponible para nuevos préstamos
+        const capitalDisponible = totalInversiones - totalPrestado;
 
         // Cuotas vencidas
         const today = new Date().toISOString().split('T')[0];
@@ -846,6 +856,14 @@ async function loadMainStats() {
             .select('*', { count: 'exact', head: true })
             .eq('estado', 'pendiente')
             .lte('fecha_vencimiento', today);
+
+        // ✅ PAGOS COBRADOS (HISTÓRICO TOTAL)
+        const { data: pagosData } = await supabase
+            .from('pagos')
+            .select('monto_pagado');
+
+        const totalCobrado = pagosData?.reduce((sum, pago) => 
+            sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
 
         // Pagos de hoy
         const { data: pagosHoyData } = await supabase
@@ -856,27 +874,30 @@ async function loadMainStats() {
         const pagosHoy = pagosHoyData?.reduce((sum, pago) => 
             sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
 
-        // Saldo en caja
-        const { data: saldoCajaData } = await supabase
-            .from('movimientos_caja')
-            .select('saldo_posterior')
-            .order('created_at', { ascending: false })
-            .limit(1);
+        // ✅ GASTOS (si tienes tabla de gastos)
+        // const { data: gastosData } = await supabase
+        //     .from('gastos')
+        //     .select('monto');
+        // const totalGastos = gastosData?.reduce((sum, gasto) => 
+        //     sum + (parseFloat(gasto.monto) || 0), 0) || 0;
+        const totalGastos = 0; // Por ahora en 0, agregarás después
 
-        const saldoCaja = saldoCajaData?.[0]?.saldo_posterior || 0;
+        // ✅ TU FÓRMULA: SALDO EN CAJA
+        const saldoCaja = totalInversiones + totalACobrar - totalCobrado - totalGastos;
+
+        // ✅ TOTAL CARTERA = INVERSIONES + TOTAL A COBRAR
+        const totalCartera = totalInversiones + totalACobrar;
 
         // Actualizar UI
         document.getElementById('totalClientes').textContent = totalClientes || 0;
         document.getElementById('creditosActivos').textContent = creditosActivos || 0;
-        document.getElementById('totalPrestado').textContent = formatCurrency(totalPrestado);
+        document.getElementById('totalPrestado').textContent = formatCurrency(totalCartera); // Total cartera
         document.getElementById('cuotasVencidas').textContent = cuotasVencidas || 0;
         document.getElementById('pagosHoy').textContent = formatCurrency(pagosHoy);
-        document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
-        
-        // ✅ NUEVO: Actualizar capital disponible
+        document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja); // Tu fórmula
         document.getElementById('capitalDisponible').textContent = formatCurrency(capitalDisponible);
 
-        // ✅ NUEVO: Cambiar color según disponibilidad
+        // Cambiar color según disponibilidad de capital
         const capitalElement = document.getElementById('capitalDisponible');
         if (capitalDisponible <= 0) {
             capitalElement.style.color = '#f56565';
