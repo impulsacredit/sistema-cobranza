@@ -1223,17 +1223,6 @@ select option[style*="fff3cd"] {
             document.getElementById('paymentModal').classList.add('show');
         }
 
-       // CARGAR CUOTAS PENDIENTES POR CLIENTE CON ESTADO VISUAL
-async function loadCuotasPendientes() {
-    const clienteId = document.getElementById('cliente_id').value;
-    const cuotaSelect = document.getElementById('cuota_id');
-    
-    if (!clienteId) {
-        cuotaSelect.innerHTML = '<option value="">Primero selecciona un cliente</option>';
-        return;
-    }
-
-    try {
         // Obtener TODAS las cuotas del cliente (pendientes Y pagadas)
        const { data, error } = await supabase
     .from('cuotas')
