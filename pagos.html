@@ -1084,9 +1084,10 @@
                 if (error) throw error;
 
                 const todasLasCuotas = data || [];
-                const cuotasPendientes = todasLasCuotas.filter(c => c.estado === 'pendiente');
+                const cuotasPendientesFiltradas = todasLasCuotas.filter(c => c.estado === 'pendiente');
                 
-                window.cuotasPendientes = cuotasPendientes;
+                // Guardar TODAS las cuotas para poder encontrar cualquiera seleccionada
+                window.cuotasPendientes = todasLasCuotas;
                 
                 cuotaSelect.innerHTML = '<option value="">Seleccionar cuota...</option>';
                 
