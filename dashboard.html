@@ -884,8 +884,8 @@ async function loadMainStats() {
 
         // ✅ TU FÓRMULA: SALDO EN CAJA
        const saldoCaja = totalInversiones + totalCobrado - totalPrestado - totalGastos;
-        // ✅ TOTAL CARTERA = TOTALCOBRAR - TOTAL ya COBRADO
-        const totalCartera = totalACobrar - totalYaCobrado;
+        // ✅ TOTAL CARTERA = TOTALCOBRAR - TOTAL  COBRADO
+        const totalCartera = totalACobrar - totalCobrado;
 
         // Actualizar UI
         document.getElementById('totalClientes').textContent = totalClientes || 0;
