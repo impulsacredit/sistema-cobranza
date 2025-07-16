@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inversiones - Sistema de Cobranza</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title-section {
+            flex: 1;
+        }
+
+        .page-title {
+            font-size: 2.8rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4ade80, #22c55e);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        /* ESTADÍSTICAS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.primary { border-left-color: #4ade80; }
+        .stat-card.success { border-left-color: #22c55e; }
+        .stat-card.warning { border-left-color: #f59e0b; }
+        .stat-card.info { border-left-color: #3b82f6; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* FILTROS */
+        .filters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4ade80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #718096;
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+
+        /* TABLA */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #2d3748;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-activo {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-retirado {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-vencido {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .tipo-badge {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tipo-capital {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .tipo-expansion {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .btn-view:hover {
+            background: #bfdbfe;
+        }
+
+        .btn-edit {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .btn-edit:hover {
+            background: #fde68a;
+        }
+
+        .btn-retire {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-retire:hover {
+            background: #fecaca;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            background: #f1f5f9;
+            color: #4a5568;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #4ade80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .calculation-section {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .calculation-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #166534;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calculation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .calculation-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #bbf7d0;
+        }
+
+        .calculation-label {
+            font-size: 0.9rem;
+            color: #059669;
+            margin-bottom: 0.5rem;
+        }
+
+        .calculation-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #166534;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* LOADING Y ESTADOS */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4ade80;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #718096;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        /* NOTIFICACIONES */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+        }
+
+        /* INVESTMENT INFO CARD */
+        .investment-info {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .investment-amount {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .investment-label {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 800px;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                CobraSystem
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="clientes.html" class="nav-link"><i class="fas fa-users"></i> Clientes</a></li>
+                <li><a href="prestamos.html" class="nav-link"><i class="fas fa-handshake"></i> Préstamos</a></li>
+                <li><a href="pagos.html" class="nav-link"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="inversiones.html" class="nav-link active"><i class="fas fa-seedling"></i> Inversiones</a></li>
+                <li><a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+                <li><a href="notificaciones.html" class="nav-link"><i class="fab fa-whatsapp"></i> WhatsApp</a></li>
+            </ul>
+
+            <div class="navbar-user">
+                <span><i class="fas fa-user-circle"></i> <span id="username">Usuario</span></span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">
+                    <i class="fas fa-seedling" style="color: #22c55e;"></i>
+                    Gestión de Inversiones
+                </h1>
+                <p class="page-subtitle">Administra el capital de inversión para expandir tu cartera</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-secondary" onclick="openRetiroModal()">
+                    <i class="fas fa-money-bill-wave"></i> Retirar Capital
+                </button>
+                <button class="btn-primary" onclick="openAddInversionModal()">
+                    <i class="fas fa-plus"></i> Nueva Inversión
+                </button>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="stats-row">
+            <div class="stat-card primary">
+                <div class="stat-value" id="totalInversiones">$0</div>
+                <div class="stat-label">Capital Total Invertido</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value" id="capitalActivo">$0</div>
+                <div class="stat-label">Capital Activo</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-value" id="totalRetirado">$0</div>
+                <div class="stat-label">Total Retirado</div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-value" id="numeroInversiones">0</div>
+                <div class="stat-label">Número de Inversiones</div>
+            </div>
+        </div>
+
+        <!-- CAPITAL DISPONIBLE PARA PRÉSTAMOS -->
+        <div class="investment-info">
+            <div class="investment-amount" id="capitalDisponible">$0</div>
+            <div class="investment-label">Capital Disponible para Nuevos Préstamos</div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="filters-section">
+            <div class="filters-grid">
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput"
+                        placeholder="Buscar por descripción..."
+                        oninput="filterInversiones()"
+                    >
+                </div>
+                <select class="filter-select" id="tipoFilter" onchange="filterInversiones()">
+                    <option value="">Todos los tipos</option>
+                    <option value="capital">Capital Inicial</option>
+                    <option value="expansion">Expansión de Cartera</option>
+                </select>
+                <select class="filter-select" id="estadoFilter" onchange="filterInversiones()">
+                    <option value="">Todos los estados</option>
+                    <option value="activo">Activo</option>
+                    <option value="retirado">Retirado</option>
+                </select>
+                <input type="date" class="filter-select" id="fechaFilter" onchange="filterInversiones()">
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loadingInversiones" class="loading">
+            <div class="spinner"></div>
+            <div>
+                <h3>Cargando inversiones...</h3>
+                <p>Obteniendo datos de Supabase</p>
+            </div>
+        </div>
+
+        <!-- TABLA DE INVERSIONES -->
+        <div id="inversionesContainer" class="table-container" style="display: none;">
+            <div class="table-header">
+                <h3 class="table-title">Historial de Inversiones</h3>
+                <span id="inversionesCount">0 inversiones</span>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inversionesTableBody">
+                    <!-- Se llena dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ESTADO VACÍO -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-seedling empty-icon"></i>
+            <h3>No hay inversiones registradas</h3>
+            <p>Comienza registrando tu primera inversión de capital</p>
+            <button class="btn-primary" onclick="openAddInversionModal()" style="margin-top: 1rem;">
+                <i class="fas fa-plus"></i> Primera Inversión
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL NUEVA INVERSIÓN -->
+    <div id="inversionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nueva Inversión</h3>
+                <button class="btn-close" onclick="closeInversionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="inversionForm" onsubmit="saveInversion(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="monto">Monto de Inversión *</label>
+                        <input type="number" id="monto" name="monto" class="form-input" 
+                               min="100" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="tipo_inversion">Tipo de Inversión *</label>
+                        <select id="tipo_inversion" name="tipo_inversion" class="form-select" required>
+                            <option value="">Seleccionar tipo...</option>
+                            <option value="capital">Capital Inicial</option>
+                            <option value="expansion">Expansión de Cartera</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_inversion">Fecha de Inversión *</label>
+                        <input type="date" id="fecha_inversion" name="fecha_inversion" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="estado">Estado *</label>
+                        <select id="estado" name="estado" class="form-select" required>
+                            <option value="activo">Activo</option>
+                            <option value="retirado">Retirado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label" for="descripcion">Descripción *</label>
+                        <textarea id="descripcion" name="descripcion" class="form-textarea" 
+                                  placeholder="Describe el propósito de esta inversión..." required></textarea>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN DE IMPACTO -->
+                <div class="calculation-section">
+                    <div class="calculation-title">
+                        <i class="fas fa-chart-line"></i>
+                        Impacto en la Cartera
+                    </div>
+                    <div class="calculation-grid">
+                        <div class="calculation-item">
+                            <div class="calculation-label">Capital Actual</div>
+                            <div class="calculation-value" id="calc_capital_actual">$0.00</div>
+                        </div>
+                        <div class="calculation-item">
+                            <div class="calculation-label">Nueva Inversión</div>
+                            <div class="calculation-value" id="calc_nueva_inversion">$0.00</div>
+                        </div>
+                        <div class="calculation-item">
+                            <div class="calculation-label">Capital Total</div>
+                            <div class="calculation-value" id="calc_capital_total">$0.00</div>
+                        </div>
+                        <div class="calculation-item">
+                            <div class="calculation-label">Capacidad Préstamos</div>
+                            <div class="calculation-value" id="calc_capacidad_prestamos">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeInversionModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" id="saveButton">
+                        <i class="fas fa-save"></i> Registrar Inversión
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL RETIRO DE CAPITAL -->
+    <div id="retiroModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Retirar Capital</h3>
+                <button class="btn-close" onclick="closeRetiroModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="retiroForm" onsubmit="processRetiro(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="monto_retiro">Monto a Retirar *</label>
+                        <input type="number" id="monto_retiro" name="monto_retiro" class="form-input" 
+                               min="1" step="0.01" required oninput="calculateRetiro()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_retiro">Fecha de Retiro *</label>
+                        <input type="date" id="fecha_retiro" name="fecha_retiro" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label class="form-label" for="motivo_retiro">Motivo del Retiro *</label>
+                        <textarea id="motivo_retiro" name="motivo_retiro" class="form-textarea" 
+                                  placeholder="Especifica el motivo del retiro..." required></textarea>
+                    </div>
+                </div>
+
+                <!-- INFORMACIÓN DEL RETIRO -->
+                <div class="calculation-section">
+                    <div class="calculation-title">
+                        <i class="fas fa-info-circle"></i>
+                        Información del Retiro
+                    </div>
+                    <div class="calculation-grid">
+                        <div class="calculation-item">
+                            <div class="calculation-label">Capital Disponible</div>
+                            <div class="calculation-value" id="calc_capital_disponible">$0.00</div>
+                        </div>
+                        <div class="calculation-item">
+                            <div class="calculation-label">Monto a Retirar</div>
+                            <div class="calculation-value" id="calc_monto_retiro">$0.00</div>
+                        </div>
+                        <div class="calculation-item">
+                            <div class="calculation-label">Capital Restante</div>
+                            <div class="calculation-value" id="calc_capital_restante">$0.00</div>
+                        </div>
+                        <div class="calculation-item">
+                            <div class="calculation-label">Impacto en Cartera</div>
+                            <div class="calculation-value" id="calc_impacto_cartera">Normal</div>
+                        </div>
+                    </div>
+                    
+                    <div id="retiroWarning" class="calculation-item" style="display: none; background: #fef2f2; border-color: #fca5a5; margin-top: 1rem;">
+                        <div style="color: #dc2626; font-weight: 600;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Advertencia: Este retiro afectará la capacidad de otorgar nuevos préstamos
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeRetiroModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" id="retiroButton">
+                        <i class="fas fa-money-bill-wave"></i> Procesar Retiro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLE DE INVERSIÓN -->
+    <div id="detalleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalle de Inversión</h3>
+                <button class="btn-close" onclick="closeDetalleModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="detalleContent">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let inversiones = [];
+        let filteredInversiones = [];
+        let editingInversionId = null;
+        let capitalActualTotal = 0;
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            if (!localStorage.getItem('userLoggedIn')) {
+                window.location.href = './';
+                return;
+            }
+
+            // Mostrar usuario
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('username').textContent = username;
+
+            // Establecer fecha por defecto
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fecha_inversion').value = today;
+            document.getElementById('fecha_retiro').value = today;
+
+            // Inicializar Supabase
+            initSupabase();
+        });
+
+        // CONFIGURAR SUPABASE
+        function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
+                setTimeout(() => {
+                    window.location.href = './';
+                }, 2000);
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
+                return;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            loadInversiones();
+        }
+
+        // CARGAR INVERSIONES
+        async function loadInversiones() {
+            try {
+                document.getElementById('loadingInversiones').style.display = 'flex';
+                document.getElementById('inversionesContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+
+                const { data, error } = await supabase
+                    .from('inversiones')
+                    .select('*')
+                    .order('fecha_inversion', { ascending: false });
+
+                if (error) throw error;
+
+                inversiones = data || [];
+                filteredInversiones = [...inversiones];
+                
+                updateStats();
+                renderInversiones();
+                
+                document.getElementById('loadingInversiones').style.display = 'none';
+                
+                if (inversiones.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    document.getElementById('inversionesContainer').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error cargando inversiones:', error);
+                document.getElementById('loadingInversiones').style.display = 'none';
+                showNotification('Error cargando inversiones: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS
+        function updateStats() {
+            const totalInversiones = inversiones
+                .reduce((sum, inv) => sum + (parseFloat(inv.monto) || 0), 0);
+            
+            const capitalActivo = inversiones
+                .filter(inv => inv.estado === 'activo')
+                .reduce((sum, inv) => sum + (parseFloat(inv.monto) || 0), 0);
+            
+            const totalRetirado = inversiones
+                .filter(inv => inv.estado === 'retirado')
+                .reduce((sum, inv) => sum + (parseFloat(inv.monto) || 0), 0);
+            
+            const numeroInversiones = inversiones.length;
+
+            // Actualizar variables globales
+            capitalActualTotal = capitalActivo;
+
+            // Actualizar UI
+            document.getElementById('totalInversiones').textContent = formatCurrency(totalInversiones);
+            document.getElementById('capitalActivo').textContent = formatCurrency(capitalActivo);
+            document.getElementById('totalRetirado').textContent = formatCurrency(totalRetirado);
+            document.getElementById('numeroInversiones').textContent = numeroInversiones;
+            document.getElementById('capitalDisponible').textContent = formatCurrency(capitalActivo);
+        }
+
+        // RENDERIZAR TABLA DE INVERSIONES
+        function renderInversiones() {
+            const tbody = document.getElementById('inversionesTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('inversionesCount').textContent = 
+                `${filteredInversiones.length} inversión${filteredInversiones.length !== 1 ? 'es' : ''}`;
+
+            filteredInversiones.forEach(inversion => {
+                const row = document.createElement('tr');
+                
+                const fechaInversion = new Date(inversion.fecha_inversion).toLocaleDateString('es-EC');
+                
+                row.innerHTML = `
+                    <td>${fechaInversion}</td>
+                    <td>
+                        <span class="tipo-badge tipo-${inversion.tipo_inversion}">
+                            ${inversion.tipo_inversion === 'capital' ? 'Capital Inicial' : 'Expansión'}
+                        </span>
+                    </td>
+                    <td style="font-weight: 700; color: #22c55e;">${formatCurrency(inversion.monto)}</td>
+                    <td>
+                        <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                             title="${inversion.descripcion}">
+                            ${inversion.descripcion}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${inversion.estado}">
+                            ${inversion.estado}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-view" onclick="viewInversionDetail('${inversion.id}')" title="Ver detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${inversion.estado === 'activo' ? `
+                                <button class="btn-action btn-edit" onclick="editInversion('${inversion.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-action btn-retire" onclick="retireInversion('${inversion.id}')" title="Marcar como retirado">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // FILTRAR INVERSIONES
+        function filterInversiones() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const tipoFilter = document.getElementById('tipoFilter').value;
+            const estadoFilter = document.getElementById('estadoFilter').value;
+            const fechaFilter = document.getElementById('fechaFilter').value;
+            
+            filteredInversiones = inversiones.filter(inversion => {
+                const matchesSearch = !searchTerm || 
+                    inversion.descripcion.toLowerCase().includes(searchTerm);
+                
+                const matchesTipo = !tipoFilter || inversion.tipo_inversion === tipoFilter;
+                const matchesEstado = !estadoFilter || inversion.estado === estadoFilter;
+                const matchesFecha = !fechaFilter || inversion.fecha_inversion === fechaFilter;
+                
+                return matchesSearch && matchesTipo && matchesEstado && matchesFecha;
+            });
+            
+            renderInversiones();
+        }
+
+        // ABRIR MODAL NUEVA INVERSIÓN
+        function openAddInversionModal() {
+            editingInversionId = null;
+            document.getElementById('modalTitle').textContent = 'Nueva Inversión';
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Registrar Inversión';
+            document.getElementById('inversionForm').reset();
+            document.getElementById('fecha_inversion').value = new Date().toISOString().split('T')[0];
+            clearCalculations();
+            updateCapitalCalculations();
+            document.getElementById('inversionModal').classList.add('show');
+        }
+
+        // EDITAR INVERSIÓN
+        function editInversion(inversionId) {
+            const inversion = inversiones.find(inv => inv.id === inversionId);
+            if (!inversion) return;
+
+            editingInversionId = inversionId;
+            document.getElementById('modalTitle').textContent = 'Editar Inversión';
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Actualizar Inversión';
+            
+            // Llenar formulario
+            document.getElementById('monto').value = inversion.monto;
+            document.getElementById('tipo_inversion').value = inversion.tipo_inversion;
+            document.getElementById('fecha_inversion').value = inversion.fecha_inversion;
+            document.getElementById('estado').value = inversion.estado;
+            document.getElementById('descripcion').value = inversion.descripcion;
+            
+            updateCapitalCalculations();
+            document.getElementById('inversionModal').classList.add('show');
+        }
+
+        // CERRAR MODAL INVERSIÓN
+        function closeInversionModal() {
+            document.getElementById('inversionModal').classList.remove('show');
+            document.getElementById('inversionForm').reset();
+            editingInversionId = null;
+            clearCalculations();
+        }
+
+        // ACTUALIZAR CÁLCULOS DE CAPITAL
+        function updateCapitalCalculations() {
+            const nuevoMonto = parseFloat(document.getElementById('monto').value) || 0;
+            const capitalTotal = capitalActualTotal + nuevoMonto;
+            const capacidadPrestamos = capitalTotal * 0.8; // 80% del capital para préstamos
+
+            document.getElementById('calc_capital_actual').textContent = formatCurrency(capitalActualTotal);
+            document.getElementById('calc_nueva_inversion').textContent = formatCurrency(nuevoMonto);
+            document.getElementById('calc_capital_total').textContent = formatCurrency(capitalTotal);
+            document.getElementById('calc_capacidad_prestamos').textContent = formatCurrency(capacidadPrestamos);
+        }
+
+        // LIMPIAR CÁLCULOS
+        function clearCalculations() {
+            document.getElementById('calc_capital_actual').textContent = '$0.00';
+            document.getElementById('calc_nueva_inversion').textContent = '$0.00';
+            document.getElementById('calc_capital_total').textContent = '$0.00';
+            document.getElementById('calc_capacidad_prestamos').textContent = '$0.00';
+        }
+
+        // GUARDAR INVERSIÓN
+        async function saveInversion(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const inversionData = {
+                monto: parseFloat(formData.get('monto')),
+                tipo_inversion: formData.get('tipo_inversion'),
+                fecha_inversion: formData.get('fecha_inversion'),
+                estado: formData.get('estado'),
+                descripcion: formData.get('descripcion').trim()
+            };
+
+            // Validación
+            if (inversionData.monto < 100) {
+                showNotification('El monto mínimo de inversión es $100', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('saveButton').disabled = true;
+                document.getElementById('saveButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+                let result;
+                
+                if (editingInversionId) {
+                    // Actualizar inversión existente
+                    result = await supabase
+                        .from('inversiones')
+                        .update(inversionData)
+                        .eq('id', editingInversionId);
+                } else {
+                    // Crear nueva inversión
+                    result = await supabase
+                        .from('inversiones')
+                        .insert([inversionData]);
+                }
+
+                if (result.error) throw result.error;
+
+                showNotification(
+                    editingInversionId ? 'Inversión actualizada exitosamente' : 'Inversión registrada exitosamente',
+                    'success'
+                );
+
+                closeInversionModal();
+                loadInversiones();
+
+                // Actualizar estadísticas de cartera global
+                await updateGlobalStats();
+
+            } catch (error) {
+                console.error('Error guardando inversión:', error);
+                showNotification('Error guardando inversión: ' + error.message, 'error');
+            } finally {
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('saveButton').innerHTML = editingInversionId ? 
+                    '<i class="fas fa-save"></i> Actualizar Inversión' : 
+                    '<i class="fas fa-save"></i> Registrar Inversión';
+            }
+        }
+
+        // ABRIR MODAL RETIRO
+        function openRetiroModal() {
+            if (capitalActualTotal <= 0) {
+                showNotification('No hay capital activo disponible para retirar', 'error');
+                return;
+            }
+
+            document.getElementById('fecha_retiro').value = new Date().toISOString().split('T')[0];
+            document.getElementById('calc_capital_disponible').textContent = formatCurrency(capitalActualTotal);
+            document.getElementById('monto_retiro').setAttribute('max', capitalActualTotal);
+            document.getElementById('retiroModal').classList.add('show');
+        }
+
+        // CALCULAR RETIRO
+        function calculateRetiro() {
+            const montoRetiro = parseFloat(document.getElementById('monto_retiro').value) || 0;
+            const capitalRestante = capitalActualTotal - montoRetiro;
+            
+            document.getElementById('calc_monto_retiro').textContent = formatCurrency(montoRetiro);
+            document.getElementById('calc_capital_restante').textContent = formatCurrency(capitalRestante);
+            
+            // Mostrar advertencia si el retiro es significativo
+            const porcentajeRetiro = (montoRetiro / capitalActualTotal) * 100;
+            const warningDiv = document.getElementById('retiroWarning');
+            
+            if (porcentajeRetiro > 50) {
+                warningDiv.style.display = 'block';
+                document.getElementById('calc_impacto_cartera').textContent = 'Alto Impacto';
+                document.getElementById('calc_impacto_cartera').style.color = '#dc2626';
+            } else if (porcentajeRetiro > 25) {
+                warningDiv.style.display = 'none';
+                document.getElementById('calc_impacto_cartera').textContent = 'Impacto Moderado';
+                document.getElementById('calc_impacto_cartera').style.color = '#f59e0b';
+            } else {
+                warningDiv.style.display = 'none';
+                document.getElementById('calc_impacto_cartera').textContent = 'Bajo Impacto';
+                document.getElementById('calc_impacto_cartera').style.color = '#22c55e';
+            }
+        }
+
+        // PROCESAR RETIRO
+        async function processRetiro(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const montoRetiro = parseFloat(formData.get('monto_retiro'));
+            
+            if (montoRetiro > capitalActualTotal) {
+                showNotification('El monto a retirar no puede ser mayor al capital disponible', 'error');
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de retirar ${formatCurrency(montoRetiro)} del capital?\n\nEsta acción afectará la capacidad de otorgar nuevos préstamos.`)) {
+                return;
+            }
+
+            try {
+                document.getElementById('retiroButton').disabled = true;
+                document.getElementById('retiroButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+                // Crear registro de retiro (como inversión con estado retirado)
+                const retiroData = {
+                    monto: -montoRetiro, // Monto negativo para indicar retiro
+                    tipo_inversion: 'capital',
+                    fecha_inversion: formData.get('fecha_retiro'),
+                    estado: 'retirado',
+                    descripcion: `RETIRO: ${formData.get('motivo_retiro').trim()}`
+                };
+
+                const { error } = await supabase
+                    .from('inversiones')
+                    .insert([retiroData]);
+
+                if (error) throw error;
+
+                showNotification('Retiro procesado exitosamente', 'success');
+                closeRetiroModal();
+                loadInversiones();
+
+            } catch (error) {
+                console.error('Error procesando retiro:', error);
+                showNotification('Error procesando retiro: ' + error.message, 'error');
+            } finally {
+                document.getElementById('retiroButton').disabled = false;
+                document.getElementById('retiroButton').innerHTML = '<i class="fas fa-money-bill-wave"></i> Procesar Retiro';
+            }
+        }
+
+        // CERRAR MODAL RETIRO
+        function closeRetiroModal() {
+            document.getElementById('retiroModal').classList.remove('show');
+            document.getElementById('retiroForm').reset();
+            document.getElementById('retiroWarning').style.display = 'none';
+        }
+
+        // MARCAR INVERSIÓN COMO RETIRADA
+        async function retireInversion(inversionId) {
+            const inversion = inversiones.find(inv => inv.id === inversionId);
+            if (!inversion) return;
+
+            if (!confirm(`¿Estás seguro de marcar esta inversión de ${formatCurrency(inversion.monto)} como retirada?\n\nEsta acción reducirá el capital disponible.`)) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('inversiones')
+                    .update({ estado: 'retirado' })
+                    .eq('id', inversionId);
+
+                if (error) throw error;
+
+                showNotification('Inversión marcada como retirada', 'success');
+                loadInversiones();
+
+            } catch (error) {
+                console.error('Error retirando inversión:', error);
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        // VER DETALLE DE INVERSIÓN
+        function viewInversionDetail(inversionId) {
+            const inversion = inversiones.find(inv => inv.id === inversionId);
+            if (!inversion) return;
+
+            const fechaInversion = new Date(inversion.fecha_inversion).toLocaleDateString('es-EC');
+            const esRetiro = inversion.monto < 0;
+            
+            const content = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                        <div style="color: #718096; font-size: 0.9rem;">Tipo de Operación</div>
+                        <div style="font-weight: 600; color: #2d3748;">
+                            ${esRetiro ? 'Retiro de Capital' : 
+                              inversion.tipo_inversion === 'capital' ? 'Capital Inicial' : 'Expansión de Cartera'}
+                        </div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                        <div style="color: #718096; font-size: 0.9rem;">Monto</div>
+                        <div style="font-weight: 600; color: ${esRetiro ? '#dc2626' : '#22c55e'};">
+                            ${formatCurrency(Math.abs(inversion.monto))}
+                        </div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                        <div style="color: #718096; font-size: 0.9rem;">Fecha</div>
+                        <div style="font-weight: 600; color: #2d3748;">${fechaInversion}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                        <div style="color: #718096; font-size: 0.9rem;">Estado</div>
+                        <div style="font-weight: 600; color: #2d3748; text-transform: capitalize;">${inversion.estado}</div>
+                    </div>
+                </div>
+                
+                <div style="background: #f8fafc; padding: 1.5rem; border-radius: 10px;">
+                    <div style="color: #718096; font-size: 0.9rem; margin-bottom: 0.5rem;">Descripción</div>
+                    <div style="color: #2d3748; line-height: 1.5;">${inversion.descripcion}</div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; padding: 1rem; background: ${esRetiro ? '#fef2f2' : '#f0fdf4'}; border-radius: 10px; border-left: 4px solid ${esRetiro ? '#ef4444' : '#22c55e'};">
+                    <div style="font-weight: 600; color: ${esRetiro ? '#dc2626' : '#166534'};">
+                        <i class="fas fa-${esRetiro ? 'arrow-down' : 'arrow-up'}"></i>
+                        ${esRetiro ? 'Reducción del Capital' : 'Aumento del Capital'}
+                    </div>
+                    <div style="font-size: 0.9rem; color: ${esRetiro ? '#991b1b' : '#065f46'}; margin-top: 0.5rem;">
+                        Esta operación ${esRetiro ? 'redujo' : 'aumentó'} la capacidad de la cartera para otorgar nuevos préstamos.
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('detalleContent').innerHTML = content;
+            document.getElementById('detalleModal').classList.add('show');
+        }
+
+        // CERRAR MODAL DETALLE
+        function closeDetalleModal() {
+            document.getElementById('detalleModal').classList.remove('show');
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS GLOBALES
+        async function updateGlobalStats() {
+            try {
+                // Aquí podrías agregar lógica para actualizar otras partes del sistema
+                // que dependan del capital disponible, como límites para nuevos préstamos
+                console.log('Capital actualizado. Nuevas inversiones disponibles para préstamos.');
+            } catch (error) {
+                console.error('Error actualizando estadísticas globales:', error);
+            }
+        }
+
+        // AGREGAR EVENT LISTENERS
+        document.getElementById('monto').addEventListener('input', updateCapitalCalculations);
+        document.getElementById('monto_retiro').addEventListener('input', calculateRetiro);
+
+        // FORMATEAR MONEDA
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-EC', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // FUNCIONES DE NAVEGACIÓN
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                window.location.href = './';
+            }
+        }
+
+        // EVENTOS DE TECLADO
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeInversionModal();
+                closeRetiroModal();
+                closeDetalleModal();
+            }
+        });
+
+        // CERRAR MODALES CLICKEANDO FUERA
+        ['inversionModal', 'retiroModal', 'detalleModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', function(event) {
+                if (event.target === this) {
+                    if (modalId === 'inversionModal') closeInversionModal();
+                    if (modalId === 'retiroModal') closeRetiroModal();
+                    if (modalId === 'detalleModal') closeDetalleModal();
+                }
+            });
+        });
+
+        // FUNCIONES DE EXPORTACIÓN (para futura implementación)
+        function exportInversiones() {
+            showNotification('🚀 Función de exportación en desarrollo', 'error');
+        }
+
+        function generateInvestmentReport() {
+            showNotification('🚀 Generación de reportes en desarrollo', 'error');
+        }
+
+        // AUTO-REFRESH CADA 5 MINUTOS
+        setInterval(() => {
+            loadInversiones();
+        }, 5 * 60 * 1000);
+
+    </script>
+</body>
+</html>
+                
