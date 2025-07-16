@@ -816,9 +816,16 @@
                     </div>
                     
                     <div class="form-group">
+                        <label class="form-label" for="credito_id">Crédito *</label>
+                        <select id="credito_id" name="credito_id" class="form-select" required onchange="loadCuotasPorCredito()">
+                            <option value="">Seleccionar crédito...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
                         <label class="form-label" for="cuota_id">Cuota a Pagar *</label>
                         <select id="cuota_id" name="cuota_id" class="form-select" required onchange="loadCuotaDetails()">
-                            <option value="">Primero selecciona un cliente</option>
+                            <option value="">Primero selecciona un crédito</option>
                         </select>
                     </div>
                     
@@ -1055,36 +1062,76 @@
             }
         }
 
-        // CARGAR CUOTAS PENDIENTES
+        // CARGAR CRÉDITOS DEL CLIENTE SELECCIONADO
         async function loadCuotasPendientes() {
             const clienteId = document.getElementById('cliente_id').value;
+            const creditoSelect = document.getElementById('credito_id');
             const cuotaSelect = document.getElementById('cuota_id');
             
             if (!clienteId) {
+                creditoSelect.innerHTML = '<option value="">Primero selecciona un cliente</option>';
                 cuotaSelect.innerHTML = '<option value="">Primero selecciona un cliente</option>';
                 return;
             }
 
             try {
                 const { data, error } = await supabase
-                    .from('cuotas')
+                    .from('creditos')
                     .select(`
-                        *,
-                        creditos!inner (
-                            cliente_id,
-                            monto_prestamo,
-                            fecha_inicio,
-                            clientes (
-                                nombre_completo
-                            )
-                        )
+                        id,
+                        monto_prestamo,
+                        fecha_inicio,
+                        numero_cuotas,
+                        estado
                     `)
-                    .eq('creditos.cliente_id', clienteId);
+                    .eq('cliente_id', clienteId)
+                    .eq('estado', 'activo');
+
+                if (error) throw error;
+
+                const creditos = data || [];
+                
+                creditoSelect.innerHTML = '<option value="">Seleccionar crédito...</option>';
+                cuotaSelect.innerHTML = '<option value="">Primero selecciona un crédito</option>';
+                
+                if (creditos.length === 0) {
+                    creditoSelect.innerHTML = '<option value="">No hay créditos activos</option>';
+                    return;
+                }
+
+                creditos.forEach(credito => {
+                    const option = document.createElement('option');
+                    option.value = credito.id;
+                    const fechaCredito = credito.fecha_inicio ? new Date(credito.fecha_inicio).toLocaleDateString('es-EC') : 'Sin fecha';
+                    option.textContent = `💰 ${formatCurrency(credito.monto_prestamo)} - ${credito.numero_cuotas} cuotas (${fechaCredito})`;
+                    creditoSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error cargando créditos:', error);
+                showNotification('Error cargando créditos: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR CUOTAS DEL CRÉDITO SELECCIONADO
+        async function loadCuotasPorCredito() {
+            const creditoId = document.getElementById('credito_id').value;
+            const cuotaSelect = document.getElementById('cuota_id');
+            
+            if (!creditoId) {
+                cuotaSelect.innerHTML = '<option value="">Primero selecciona un crédito</option>';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('cuotas')
+                    .select('*')
+                    .eq('credito_id', creditoId);
 
                 if (error) throw error;
 
                 const todasLasCuotas = data || [];
-                const cuotasPendientesFiltradas = todasLasCuotas.filter(c => c.estado === 'pendiente');
                 
                 // Guardar TODAS las cuotas para poder encontrar cualquiera seleccionada
                 window.cuotasPendientes = todasLasCuotas;
@@ -1092,9 +1139,12 @@
                 cuotaSelect.innerHTML = '<option value="">Seleccionar cuota...</option>';
                 
                 if (todasLasCuotas.length === 0) {
-                    cuotaSelect.innerHTML = '<option value="">No hay cuotas registradas</option>';
+                    cuotaSelect.innerHTML = '<option value="">No hay cuotas para este crédito</option>';
                     return;
                 }
+
+                // Ordenar cuotas por número
+                todasLasCuotas.sort((a, b) => a.numero_cuota - b.numero_cuota);
 
                 todasLasCuotas.forEach(cuota => {
                     const option = document.createElement('option');
@@ -1105,13 +1155,19 @@
                     if (cuota.estado === 'pagado') {
                         option.textContent = `✅ Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - PAGADA (${fechaVenc})`;
                         option.disabled = true;
+                        option.style.backgroundColor = '#d4edda';
+                        option.style.color = '#155724';
                     } else {
                         const diasAtraso = Math.max(0, Math.floor((new Date() - new Date(cuota.fecha_vencimiento)) / (1000 * 60 * 60 * 24)));
                         
                         if (diasAtraso > 0) {
                             option.textContent = `⚠️ Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - VENCIDA (${fechaVenc}) - ${diasAtraso} días`;
+                            option.style.backgroundColor = '#f8d7da';
+                            option.style.color = '#721c24';
                         } else {
                             option.textContent = `🔶 Cuota #${cuota.numero_cuota} - ${formatCurrency(cuota.monto_cuota)} - Vence: ${fechaVenc}`;
+                            option.style.backgroundColor = '#fff3cd';
+                            option.style.color = '#856404';
                         }
                     }
                     
