@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard con Asistente IA - CobraSystem</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* TUS ESTILOS EXISTENTES DEL DASHBOARD */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.primary { border-left-color: #667eea; }
+        .stat-card.success { border-left-color: #48bb78; }
+        .stat-card.warning { border-left-color: #ed8936; }
+        .stat-card.danger { border-left-color: #f56565; }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* FLOATING ASSISTANT BUTTON */
+        .assistant-trigger {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .assistant-trigger:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* CHAT CONTAINER */
+        .chat-container {
+            position: fixed;
+            bottom: 120px;
+            right: 30px;
+            width: 400px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 999;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .chat-container.show {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* CHAT HEADER */
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .ai-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* CHAT MESSAGES */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            animation: fadeInMessage 0.3s ease;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: #f1f5f9;
+            color: #374151;
+            border-bottom-left-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        @keyframes fadeInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* QUICK ACTIONS */
+        .quick-actions {
+            padding: 16px 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .quick-action {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #374151;
+        }
+
+        .quick-action:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* CHAT INPUT */
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            border: 2px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* ACTION BUTTONS */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .action-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        /* SMART SUGGESTIONS */
+        .smart-suggestions {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #667eea;
+        }
+
+        .suggestion-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .suggestion-item {
+            background: rgba(102, 126, 234, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #4f46e5;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(4px);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .chat-container {
+                width: calc(100vw - 40px);
+                right: 20px;
+                left: 20px;
+                height: 70vh;
+                bottom: 100px;
+            }
+
+            .assistant-trigger {
+                right: 20px;
+                bottom: 20px;
+                width: 60px;
+                height: 60px;
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                CobraSystem
+            </div>
+            <div style="color: white; font-weight: 500;">
+                <i class="fas fa-user-circle"></i>
+                <span>Duvan</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container">
+        <!-- SUGERENCIAS INTELIGENTES -->
+        <div class="smart-suggestions">
+            <div class="suggestion-title">
+                <i class="fas fa-lightbulb"></i>
+                Sugerencias Inteligentes
+            </div>
+            <div class="suggestion-item" onclick="askAssistant('¿Cuántos clientes tengo con cuotas vencidas?')">
+                <span>📊 Revisa clientes con cuotas vencidas - Es importante mantener al día la cobranza</span>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="suggestion-item" onclick="askAssistant('¿Cuál es mi proyección de ingresos para este mes?')">
+                <span>💰 Analiza tus proyecciones de ingresos - Planifica tu flujo de caja</span>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="suggestion-item" onclick="askAssistant('¿Qué clientes debo contactar hoy?')">
+                <span>📱 Identifica clientes prioritarios para contactar - Optimiza tu tiempo</span>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS PRINCIPALES -->
+        <div class="stats-grid">
+            <div class="stat-card primary" onclick="askAssistant('Explícame sobre mis clientes totales')">
+                <div class="stat-value">156</div>
+                <div class="stat-label">Total Clientes</div>
+                <div style="position: absolute; top: 1rem; right: 1rem; color: #667eea; font-size: 1.2rem;">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            
+            <div class="stat-card success" onclick="askAssistant('¿Cómo están mis créditos activos?')">
+                <div class="stat-value">89</div>
+                <div class="stat-label">Créditos Activos</div>
+                <div style="position: absolute; top: 1rem; right: 1rem; color: #48bb78; font-size: 1.2rem;">
+                    <i class="fas fa-handshake"></i>
+                </div>
+            </div>
+            
+            <div class="stat-card warning" onclick="askAssistant('Muéstrame información sobre las cuotas vencidas')">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Cuotas Vencidas</div>
+                <div style="position: absolute; top: 1rem; right: 1rem; color: #ed8936; font-size: 1.2rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+            
+            <div class="stat-card danger" onclick="askAssistant('¿Cuánto dinero tengo por cobrar?')">
+                <div class="stat-value">$2,847</div>
+                <div class="stat-label">Por Cobrar</div>
+                <div style="position: absolute; top: 1rem; right: 1rem; color: #f56565; font-size: 1.2rem;">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÁS CONTENIDO DEL DASHBOARD -->
+        <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+            <h3 style="color: #2d3748; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-chart-bar"></i>
+                Tu Dashboard Inteligente
+            </h3>
+            <p style="color: #718096; margin-bottom: 1.5rem;">
+                Haz clic en cualquier estadística para obtener insights detallados del asistente IA, 
+                o usa el botón flotante para hacer preguntas específicas sobre tu negocio.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 10px; cursor: pointer;" 
+                     onclick="askAssistant('¿Cuál es mi tasa de morosidad actual?')">
+                    <h4 style="color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem;">Tasa de Morosidad</h4>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #f56565;">7.8%</div>
+                </div>
+                
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 10px; cursor: pointer;" 
+                     onclick="askAssistant('¿Cuánto cobré este mes?')">
+                    <h4 style="color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem;">Cobrado Este Mes</h4>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #48bb78;">$8,450</div>
+                </div>
+                
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 10px; cursor: pointer;" 
+                     onclick="askAssistant('¿Cuántos préstamos otorgué este mes?')">
+                    <h4 style="color: #4a5568; font-size: 0.9rem; margin-bottom: 0.5rem;">Préstamos Nuevos</h4>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">23</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING ASSISTANT BUTTON -->
+    <button class="assistant-trigger" onclick="toggleChat()" id="assistantTrigger">
+        <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- CHAT CONTAINER -->
+    <div class="chat-container" id="chatContainer">
+        <!-- HEADER -->
+        <div class="chat-header">
+            <div class="chat-title">
+                <div class="ai-avatar">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 600;">Asistente IA</div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">CobraSystem Assistant</div>
+                </div>
+            </div>
+            <button class="close-btn" onclick="toggleChat()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="quick-actions">
+            <div class="quick-action" onclick="sendQuickAction('¿Cuántos clientes tengo con cuotas vencidas?')">
+                <i class="fas fa-exclamation-triangle"></i> Cuotas Vencidas
+            </div>
+            <div class="quick-action" onclick="sendQuickAction('Muéstrame el resumen de ingresos de hoy')">
+                <i class="fas fa-chart-line"></i> Ingresos
+            </div>
+            <div class="quick-action" onclick="sendQuickAction('¿Qué clientes debo contactar?')">
+                <i class="fas fa-phone"></i> Contactos
+            </div>
+        </div>
+
+        <!-- MESSAGES -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                ¡Hola Duvan! 👋 Soy tu asistente IA de CobraSystem.
+                
+                Veo que tienes **12 cuotas vencidas** que requieren atención. ¿Te ayudo a analizar la situación o prefieres revisar otra métrica?
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="sendQuickAction('Analiza mis cuotas vencidas')">Analizar Mora</button>
+                    <button class="action-btn" onclick="sendQuickAction('¿Cómo mejoro mi cobranza?')">Consejos</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- INPUT -->
+        <div class="chat-input">
+            <div class="input-container">
+                <textarea 
+                    class="input-field" 
+                    id="messageInput" 
+                    placeholder="Pregúntame sobre tu negocio..." 
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES PARA EL ASISTENTE
+        let isOpen = false;
+        let conversationHistory = [];
+
+        // FUNCIÓN PARA PREGUNTAR AL ASISTENTE DESDE LA INTERFAZ
+        function askAssistant(question) {
+            // Abrir chat si no está abierto
+            if (!isOpen) {
+                toggleChat();
+            }
+            
+            // Enviar pregunta automáticamente
+            setTimeout(() => {
+                document.getElementById('messageInput').value = question;
+                sendMessage();
+            }, 300);
+        }
+
+        // TOGGLE CHAT
+        function toggleChat() {
+            const container = document.getElementById('chatContainer');
+            const trigger = document.getElementById('assistantTrigger');
+            
+            isOpen = !isOpen;
+            
+            if (isOpen) {
+                container.classList.add('show');
+                trigger.innerHTML = '<i class="fas fa-times"></i>';
+                document.getElementById('messageInput').focus();
+            } else {
+                container.classList.remove('show');
+                trigger.innerHTML = '<i class="fas fa-robot"></i>';
+            }
+        }
+
+        // AUTO RESIZE TEXTAREA
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // HANDLE ENTER KEY
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // SEND QUICK ACTION
+        function sendQuickAction(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        // SEND MESSAGE
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            autoResize(input);
+
+            // Add to conversation history
+            conversationHistory.push({
+                role: 'user',
+                content: message
+            });
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Call Claude API
+                const response = await getAIResponse(message);
+                
+                // Remove typing indicator
+                removeTypingIndicator();
+                
+                // Add AI response
+                addMessage(response, 'assistant');
+                
+                // Add to conversation history
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: response
+                });
+
+            } catch (error) {
+                console.error('Error getting AI response:', error);
+                removeTypingIndicator();
+                addMessage('Lo siento, ocurrió un error. Te puedo ayudar con información general del sistema.', 'assistant');
+            }
+        }
+
+        // GET AI RESPONSE
+        async function getAIResponse(userMessage) {
+            const systemPrompt = `Eres el asistente IA de CobraSystem para Duvan. 
+
+DATOS ACTUALES DEL DASHBOARD:
+- Total Clientes: 156
+- Créditos Activos: 89  
+- Cuotas Vencidas: 12 (CRÍTICO - necesita atención)
+- Dinero por Cobrar: $2,847
+- Tasa de Morosidad: 7.8%
+- Cobrado Este Mes: $8,450
+- Préstamos Nuevos: 23
+
+CONTEXTO: Sistema de cobranza con módulos de Dashboard, Clientes, Préstamos, Pagos, Reportes y Notificaciones WhatsApp.
+
+RESPONDE:
+- Máximo 2-3 párrafos
+- Usa datos específicos cuando sea relevante
+- Incluye emojis para hacer más amigable
+- Sugiere acciones concretas
+- Si es apropiado, incluye botones de acción
+
+Ejemplo de respuesta con botones:
+"Tu análisis aquí... 
+
+<div class="action-buttons">
+<button class="action-btn" onclick="window.open('reportes.html', '_blank')">Ver Reportes</button>
+<button class="action-btn" onclick="sendQuickAction('Siguiente pregunta')">Más Info</button>
+</div>"`;
+
+            const fullPrompt = `${systemPrompt}
+
+Usuario: ${userMessage}
+
+Asistente:`;
+
+            try {
+                const response = await window.claude.complete(fullPrompt);
+                return response;
+            } catch (error) {
+                console.error('Claude API error:', error);
+                return generateContextualResponse(userMessage);
+            }
+        }
+
+        // RESPUESTAS CONTEXTUALES BASADAS EN LOS DATOS
+        function generateContextualResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('cuotas vencidas') || lowerMessage.includes('mora')) {
+                return `🚨 **Situación de Morosidad Crítica**
+
+Tienes **12 cuotas vencidas** de un total de 89 créditos activos. Tu tasa de morosidad es del **7.8%**, lo cual está en el límite aceptable.
+
+💡 **Recomendación:** Contacta urgentemente a estos 12 clientes. El monto total por cobrar es de **$2,847**, lo que representa una parte significativa de tus ingresos.
+
+<div class="action-buttons">
+<button class="action-btn" onclick="window.open('reportes.html', '_blank')">Ver Reporte Mora</button>
+<button class="action-btn" onclick="sendQuickAction('¿Cómo contacto a estos clientes?')">Plan de Acción</button>
+</div>`;
+            }
+            
+            if (lowerMessage.includes('ingresos') || lowerMessage.includes('cobrado')) {
+                return `💰 **Análisis de Ingresos**
+
+Este mes has cobrado **$8,450**, lo cual es un excelente resultado. Con 23 préstamos nuevos otorgados, tu negocio está creciendo.
+
+📊 Sin embargo, tienes **$2,847 por cobrar** en cuotas vencidas que podrían convertirse en ingresos inmediatos con la gestión adecuada.
+
+<div class="action-buttons">
+<button class="action-btn" onclick="window.open('pagos.html', '_blank')">Ver Pagos</button>
+<button class="action-btn" onclick="sendQuickAction('¿Cómo aumentar mis ingresos?')">Estrategias</button>
+</div>`;
+            }
+            
+            if (lowerMessage.includes('clientes') || lowerMessage.includes('contactar')) {
+                return `👥 **Gestión de Clientes**
+
+Tienes **156 clientes** en total, con **89 créditos activos**. Esto significa una buena tasa de penetración (57%).
+
+🎯 **Prioridades de contacto:**
+• 12 clientes con cuotas vencidas (alta prioridad)
+• Clientes con pagos próximos a vencer
+• Seguimiento a los 23 nuevos préstamos
+
+<div class="action-buttons">
+<button class="action-btn" onclick="window.open('clientes.html', '_blank')">Gestionar Clientes</button>
+<button class="action-btn" onclick="window.open('notificaciones.html', '_blank')">Enviar WhatsApp</button>
+</div>`;
+            }
+            
+            return `🤖 **Asistente CobraSystem**
+
+Basándome en tus datos actuales:
+- **156 clientes** totales
+- **89 créditos activos** 
+- **$8,450 cobrados** este mes
+- **12 cuotas vencidas** que requieren atención
+
+¿Sobre qué aspecto específico te gustaría saber más?
+
+<div class="action-buttons">
+<button class="action-btn" onclick="sendQuickAction('Analiza mi situación general')">Análisis General</button>
+<button class="action-btn" onclick="sendQuickAction('¿Cómo optimizar mi negocio?')">Optimización</button>
+</div>`;
+        }
+
+        // ADD MESSAGE TO CHAT
+        function addMessage(content, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.innerHTML = content;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // SHOW TYPING INDICATOR
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message typing';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px; color: #6b7280;">
+                    <div style="width: 16px; height: 16px; border: 2px solid #e5e7eb; border-top: 2px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    Analizando tus datos...
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // REMOVE TYPING INDICATOR
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // INITIALIZE
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🤖 Dashboard con Asistente IA inicializado');
+            
+            // Mostrar notificación inteligente después de cargar
+            setTimeout(() => {
+                if (!isOpen) {
+                    showSmartNotification();
+                }
+            }, 3000);
+        });
+
+        // NOTIFICACIÓN INTELIGENTE
+        function showSmartNotification() {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+                z-index: 1001;
+                animation: slideInRight 0.5s ease;
+                cursor: pointer;
+                max-width: 300px;
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-robot" style="font-size: 1.2rem;"></i>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">¡Asistente IA disponible!</div>
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Tienes 12 cuotas vencidas. ¿Te ayudo a analizarlas?</div>
+                    </div>
+                </div>
+            `;
+            
+            notification.onclick = () => {
+                notification.remove();
+                askAssistant('Analiza mis cuotas vencidas urgentes');
+            };
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 8000);
+        }
+
+        // KEYBOARD SHORTCUTS
+        document.addEventListener('keydown', function(event) {
+            // Alt + A = Toggle Assistant
+            if (event.altKey && event.key === 'a') {
+                event.preventDefault();
+                toggleChat();
+            }
+            
+            // Escape = Close if open
+            if (event.key === 'Escape' && isOpen) {
+                toggleChat();
+            }
+        });
+
+        // SIMULACIÓN DE CONEXIÓN CLAUDE (REMOVE PARA USAR CLAUDE REAL)
+        window.claude = {
+            complete: async function(prompt) {
+                // Simular delay de API
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Respuesta simulada inteligente
+                if (prompt.includes('cuotas vencidas')) {
+                    return `🚨 **Análisis de Cuotas Vencidas**
+
+He analizado tus 12 cuotas vencidas y el total de $2,847 por cobrar. Tu tasa de morosidad del 7.8% está en el límite, pero es manejable.
+
+📋 **Recomendaciones prioritarias:**
+• Contacta inmediatamente a los 3 clientes con mayor monto vencido
+• Usa WhatsApp para recordatorios automáticos
+• Considera incentivos para pago inmediato (descuentos por pronto pago)
+
+💡 **Insight:** Con 89 créditos activos, solo el 13.5% está en mora, lo que indica buena gestión general.
+
+<div class="action-buttons">
+<button class="action-btn" onclick="window.open('reportes.html', '_blank')">Ver Reporte Detallado</button>
+<button class="action-btn" onclick="sendQuickAction('¿Qué incentivos puedo ofrecer?')">Estrategias de Cobro</button>
+</div>`;
+                }
+                
+                if (prompt.includes('situación general') || prompt.includes('análisis general')) {
+                    return `📊 **Análisis General de tu Negocio**
+
+**Estado Excelente:** $8,450 cobrados este mes con 23 nuevos préstamos muestra crecimiento sólido.
+
+**Área de Oportunidad:** Las 12 cuotas vencidas ($2,847) representan el 33.7% de tus ingresos mensuales potenciales adicionales.
+
+**Recomendación Estratégica:** Con una tasa de penetración del 57% (89 activos de 156 clientes), tienes potencial para 67 préstamos adicionales.
+
+<div class="action-buttons">
+<button class="action-btn" onclick="sendQuickAction('¿Cómo conseguir más clientes?')">Estrategias Crecimiento</button>
+<button class="action-btn" onclick="sendQuickAction('Analiza mi rentabilidad')">Análisis Financiero</button>
+</div>`;
+                }
+                
+                // Respuesta genérica inteligente
+                return `🤖 **Asistente CobraSystem**
+
+Basándome en tu dashboard actual, veo oportunidades de mejora específicas. Tu negocio está creciendo (23 préstamos nuevos), pero necesitas atención en la cobranza.
+
+¿Te gustaría que analice algún aspecto específico? Puedo ayudarte con estrategias de crecimiento, optimización de cobranza, o análisis financiero detallado.
+
+<div class="action-buttons">
+<button class="action-btn" onclick="sendQuickAction('Muéstrame mis mejores clientes')">Mejores Clientes</button>
+<button class="action-btn" onclick="sendQuickAction('¿Cómo reduzco la morosidad?')">Reducir Morosidad</button>
+</div>`;
+            }
+        };
+
+        // EXPORT FUNCTIONS
+        window.CobraSystemAssistant = {
+            toggle: toggleChat,
+            ask: askAssistant,
+            isOpen: () => isOpen
+        };
+
+    </script>
+</body>
+</html>
