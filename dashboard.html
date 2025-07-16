@@ -883,7 +883,9 @@ async function loadMainStats() {
         const totalGastos = 0; // Por ahora en 0, agregarás después
 
         // ✅ TU FÓRMULA: SALDO EN CAJA
-        const saldoCaja = totalInversiones + totalACobrar - totalCobrado - totalGastos;
+       const saldoCaja = totalInversiones + totalCobrado - totalPrestado - totalGastos;
+        const totalPrestado = prestamosData?.reduce((sum, credito) => 
+    sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
 
         // ✅ TOTAL CARTERA = INVERSIONES + TOTAL A COBRAR
         const totalCartera = totalInversiones + totalACobrar;
