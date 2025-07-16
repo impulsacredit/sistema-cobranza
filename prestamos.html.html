@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Préstamos - Sistema de Cobranza</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title-section {
+            flex: 1;
+        }
+
+        .page-title {
+            font-size: 2.8rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        /* ESTADÍSTICAS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.primary { border-left-color: #667eea; }
+        .stat-card.success { border-left-color: #48bb78; }
+        .stat-card.warning { border-left-color: #ed8936; }
+        .stat-card.danger { border-left-color: #f56565; }
+        .stat-card.info { border-left-color: #4299e1; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* FILTROS */
+        .filters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #718096;
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* TABLA */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: #f8fafc;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #2d3748;
+        }
+
+        .table tr:hover {
+            background: #f8fafc;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-activo {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-cancelado {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status-vencido {
+            background: #feebc8;
+            color: #744210;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #e6f3ff;
+            color: #0066cc;
+        }
+
+        .btn-view:hover {
+            background: #cce7ff;
+        }
+
+        .btn-edit {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .btn-edit:hover {
+            background: #ffeaa7;
+        }
+
+        .btn-cancel {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        .btn-cancel:hover {
+            background: #ffcccc;
+        }
+
+        /* LOADING Y ESTADOS */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #718096;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+            max-width: 450px;
+            white-space: pre-line;
+            line-height: 1.4;
+        }
+
+        .notification.success {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+        }
+
+        .notification.error {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+        }
+
+        /* ANIMACIONES */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 800px;
+            }
+        }
+
+        /* ERROR DISPLAY */
+        .error-display {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 2rem 0;
+            color: #742a2a;
+        }
+
+        .error-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .debug-info {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                CobraSystem
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="clientes.html" class="nav-link"><i class="fas fa-users"></i> Clientes</a></li>
+                <li><a href="prestamos.html" class="nav-link active"><i class="fas fa-handshake"></i> Préstamos</a></li>
+                <li><a href="pagos.html" class="nav-link"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+                <li><a href="notificaciones.html" class="nav-link"><i class="fab fa-whatsapp"></i> WhatsApp</a></li>
+            </ul>
+
+            <div class="navbar-user">
+                <span><i class="fas fa-user-circle"></i> <span id="username">Duvan</span></span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="container">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div class="page-title-section">
+                <h1 class="page-title">Gestión de Préstamos</h1>
+                <p class="page-subtitle">Administra todos los créditos y préstamos del sistema</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-secondary" onclick="testConnection()">
+                    <i class="fas fa-database"></i> Probar Conexión
+                </button>
+                <button class="btn-primary" onclick="openAddLoanModal()">
+                    <i class="fas fa-plus"></i> Nuevo Préstamo
+                </button>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="stats-row">
+            <div class="stat-card primary">
+                <div class="stat-value" id="totalPrestamos">0</div>
+                <div class="stat-label">Total Préstamos</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value" id="prestamosActivos">0</div>
+                <div class="stat-label">Préstamos Activos</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-value" id="montoTotal">$0</div>
+                <div class="stat-label">Monto Total Prestado</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-value" id="montoPromedio">$0</div>
+                <div class="stat-label">Promedio por Préstamo</div>
+            </div>
+        </div>
+
+        <!-- DEBUG PANEL (solo visible si hay errores) -->
+        <div id="debugPanel" class="error-display" style="display: none;">
+            <div class="error-title">🔍 Información de Debug</div>
+            <div id="debugContent"></div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="filters-section">
+            <div class="filters-grid">
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput"
+                        placeholder="Buscar por cliente..."
+                        oninput="filterPrestamos()"
+                    >
+                </div>
+                <select class="filter-select" id="estadoFilter" onchange="filterPrestamos()">
+                    <option value="">Todos los estados</option>
+                    <option value="activo">Activos</option>
+                    <option value="cancelado">Cancelados</option>
+                    <option value="vencido">Vencidos</option>
+                </select>
+                <select class="filter-select" id="frecuenciaFilter" onchange="filterPrestamos()">
+                    <option value="">Todas las frecuencias</option>
+                    <option value="diario">Diario</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="quincenal">Quincenal</option>
+                    <option value="mensual">Mensual</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loadingPrestamos" class="loading">
+            <div class="spinner"></div>
+            <div>
+                <h3>Cargando préstamos...</h3>
+                <p>Conectando con la base de datos...</p>
+            </div>
+        </div>
+
+        <!-- TABLA DE PRÉSTAMOS -->
+        <div id="prestamosContainer" class="table-container" style="display: none;">
+            <div class="table-header">
+                <h3 class="table-title">Lista de Préstamos</h3>
+                <span id="prestamosCount">0 préstamos</span>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Monto</th>
+                        <th>Tasa</th>
+                        <th>Cuotas</th>
+                        <th>Frecuencia</th>
+                        <th>Estado</th>
+                        <th>Fecha Inicio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="prestamosTableBody">
+                    <!-- Se llena dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ESTADO VACÍO -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-handshake empty-icon"></i>
+            <h3>No hay préstamos registrados</h3>
+            <p>Comienza otorgando el primer préstamo a tus clientes</p>
+            <button class="btn-primary" onclick="openAddLoanModal()" style="margin-top: 1rem;">
+                <i class="fas fa-plus"></i> Crear Primer Préstamo
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let prestamos = [];
+        let filteredPrestamos = [];
+        let clientes = [];
+
+        // FUNCIONES DE DEBUG
+        function addDebugInfo(message, data = null) {
+            console.log('DEBUG:', message, data);
+            const debugPanel = document.getElementById('debugPanel');
+            const debugContent = document.getElementById('debugContent');
+            
+            debugPanel.style.display = 'block';
+            debugContent.innerHTML += `
+                <div style="margin-bottom: 0.5rem;">
+                    <strong>${new Date().toLocaleTimeString()}:</strong> ${message}
+                    ${data ? `<div class="debug-info">${JSON.stringify(data, null, 2)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function clearDebugInfo() {
+            document.getElementById('debugPanel').style.display = 'none';
+            document.getElementById('debugContent').innerHTML = '';
+        }
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            clearDebugInfo();
+            addDebugInfo('🚀 Aplicación iniciando...');
+
+            // Verificar autenticación
+            if (!localStorage.getItem('userLoggedIn')) {
+                addDebugInfo('❌ Usuario no autenticado, redirigiendo...');
+                window.location.href = './';
+                return;
+            }
+
+            // Mostrar usuario
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('username').textContent = username;
+            addDebugInfo(`👤 Usuario logueado: ${username}`);
+
+            // Inicializar Supabase
+            initSupabase();
+        });
+
+        // CONFIGURAR SUPABASE
+        function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            addDebugInfo('🔑 Verificando credenciales de Supabase...');
+            addDebugInfo(`URL: ${url ? 'Configurada ✅' : 'No configurada ❌'}`);
+            addDebugInfo(`Key: ${key ? 'Configurada ✅' : 'No configurada ❌'}`);
+            
+            if (!url || !key) {
+                addDebugInfo('❌ Credenciales de Supabase no configuradas');
+                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
+                setTimeout(() => {
+                    window.location.href = './';
+                }, 2000);
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                addDebugInfo('❌ Librería de Supabase no disponible');
+                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
+                return;
+            }
+            
+            try {
+                supabase = window.supabase.createClient(url, key);
+                addDebugInfo('✅ Cliente de Supabase creado exitosamente');
+                loadData();
+            } catch (error) {
+                addDebugInfo('❌ Error creando cliente de Supabase', error);
+                showNotification('Error configurando Supabase: ' + error.message, 'error');
+            }
+        }
+
+        // PROBAR CONEXIÓN
+        async function testConnection() {
+            addDebugInfo('🧪 Probando conexión con Supabase...');
+            
+            try {
+                // Probar conexión básica
+                const { data, error } = await supabase
+                    .from('creditos')
+                    .select('count(*)', { count: 'exact', head: true });
+
+                if (error) {
+                    addDebugInfo('❌ Error en la conexión', error);
+                    showNotification('Error de conexión: ' + error.message, 'error');
+                } else {
+                    addDebugInfo('✅ Conexión exitosa', data);
+                    showNotification('Conexión exitosa con la base de datos', 'success');
+                }
+            } catch (error) {
+                addDebugInfo('❌ Error crítico de conexión', error);
+                showNotification('Error crítico: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR DATOS INICIALES
+        async function loadData() {
+            addDebugInfo('📊 Iniciando carga de datos...');
+            
+            try {
+                await Promise.all([
+                    loadClientes(),
+                    loadPrestamos()
+                ]);
+                addDebugInfo('✅ Todos los datos cargados exitosamente');
+            } catch (error) {
+                addDebugInfo('❌ Error cargando datos', error);
+                console.error('Error cargando datos:', error);
+                showNotification('Error cargando datos: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR CLIENTES
+        async function loadClientes() {
+            addDebugInfo('👥 Cargando clientes...');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('clientes')
+                    .select('id, nombre_completo, cedula')
+                    .order('nombre_completo');
+
+                if (error) {
+                    addDebugInfo('❌ Error cargando clientes', error);
+                    throw error;
+                }
+
+                clientes = data || [];
+                addDebugInfo(`✅ Clientes cargados: ${clientes.length} registros`, clientes);
+
+            } catch (error) {
+                addDebugInfo('❌ Error crítico cargando clientes', error);
+                console.error('Error cargando clientes:', error);
+                showNotification('Error cargando clientes: ' + error.message, 'error');
+                clientes = [];
+            }
+        }
+
+        // CARGAR PRÉSTAMOS CON DEBUG MEJORADO
+        async function loadPrestamos() {
+            addDebugInfo('💰 Iniciando carga de préstamos...');
+            
+            try {
+                document.getElementById('loadingPrestamos').style.display = 'flex';
+                document.getElementById('prestamosContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+
+                // Primero, probar una consulta simple
+                addDebugInfo('🔍 Probando consulta simple a la tabla creditos...');
+                const { data: testData, error: testError } = await supabase
+                    .from('creditos')
+                    .select('*')
+                    .limit(1);
+
+                if (testError) {
+                    addDebugInfo('❌ Error en consulta simple', testError);
+                    throw testError;
+                }
+
+                addDebugInfo('✅ Consulta simple exitosa', testData);
+
+                // Ahora intentar la consulta completa
+                addDebugInfo('🔍 Ejecutando consulta completa con JOIN...');
+                const { data, error } = await supabase
+                    .from('creditos')
+                    .select(`
+                        *,
+                        clientes (
+                            id,
+                            nombre_completo,
+                            cedula
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    addDebugInfo('❌ Error en consulta con JOIN', error);
+                    
+                    // Intentar sin JOIN como respaldo
+                    addDebugInfo('🔄 Intentando consulta sin JOIN...');
+                    const { data: simpleData, error: simpleError } = await supabase
+                        .from('creditos')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (simpleError) {
+                        addDebugInfo('❌ Error en consulta simple de respaldo', simpleError);
+                        throw simpleError;
+                    }
+
+                    addDebugInfo('✅ Consulta simple de respaldo exitosa', simpleData);
+                    
+                    // Enriquecer datos manualmente
+                    for (let prestamo of simpleData) {
+                        const cliente = clientes.find(c => c.id === prestamo.cliente_id);
+                        prestamo.clientes = cliente || null;
+                    }
+                    
+                    prestamos = simpleData;
+                } else {
+                    addDebugInfo('✅ Consulta con JOIN exitosa', data);
+                    prestamos = data || [];
+                }
+
+                filteredPrestamos = [...prestamos];
+                addDebugInfo(`📊 Préstamos procesados: ${prestamos.length} registros`);
+                
+                updateStats();
+                renderPrestamos();
+                
+                document.getElementById('loadingPrestamos').style.display = 'none';
+                
+                if (prestamos.length === 0) {
+                    addDebugInfo('📭 No hay préstamos, mostrando estado vacío');
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    addDebugInfo('📋 Mostrando tabla de préstamos');
+                    document.getElementById('prestamosContainer').style.display = 'block';
+                }
+
+            } catch (error) {
+                addDebugInfo('❌ Error crítico cargando préstamos', error);
+                document.getElementById('loadingPrestamos').style.display = 'none';
+                console.error('Error cargando préstamos:', error);
+                showNotification('Error cargando préstamos: ' + error.message, 'error');
+                
+                // Mostrar estado de error con información útil
+                document.getElementById('emptyState').innerHTML = `
+                    <i class="fas fa-exclamation-triangle empty-icon" style="color: #f56565;"></i>
+                    <h3>Error cargando préstamos</h3>
+                    <p>Revisa la información de debug arriba para más detalles</p>
+                    <button class="btn-primary" onclick="loadPrestamos()" style="margin-top: 1rem;">
+                        <i class="fas fa-redo"></i> Reintentar
+                    </button>
+                `;
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS
+        function updateStats() {
+            addDebugInfo('📊 Actualizando estadísticas...');
+            
+            const total = prestamos.length;
+            const activos = prestamos.filter(p => p.estado === 'activo').length;
+            const montoTotal = prestamos
+                .filter(p => p.estado === 'activo')
+                .reduce((sum, p) => sum + (parseFloat(p.monto_prestamo) || 0), 0);
+            const promedio = activos > 0 ? montoTotal / activos : 0;
+
+            document.getElementById('totalPrestamos').textContent = total;
+            document.getElementById('prestamosActivos').textContent = activos;
+            document.getElementById('montoTotal').textContent = formatCurrency(montoTotal);
+            document.getElementById('montoPromedio').textContent = formatCurrency(promedio);
+            
+            addDebugInfo(`📈 Estadísticas: Total=${total}, Activos=${activos}, Monto=${montoTotal}, Promedio=${promedio}`);
+        }
+
+        // RENDERIZAR TABLA
+        function renderPrestamos() {
+            addDebugInfo('🎨 Renderizando tabla de préstamos...');
+            
+            const tbody = document.getElementById('prestamosTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('prestamosCount').textContent = 
+                `${filteredPrestamos.length} préstamo${filteredPrestamos.length !== 1 ? 's' : ''}`;
+
+            filteredPrestamos.forEach((prestamo, index) => {
+                addDebugInfo(`🔍 Procesando préstamo ${index + 1}:`, prestamo);
+                
+                const row = document.createElement('tr');
+                
+                // Manejar fecha de forma segura
+                let fechaInicio = 'Fecha inválida';
+                try {
+                    if (prestamo.fecha_inicio) {
+                        fechaInicio = new Date(prestamo.fecha_inicio).toLocaleDateString('es-EC');
+                    }
+                } catch (error) {
+                    addDebugInfo(`⚠️ Error formateando fecha para préstamo ${prestamo.id}:`, error);
+                }
+                
+                const cliente = prestamo.clientes;
+                const clienteNombre = cliente?.nombre_completo || 'Cliente no encontrado';
+                const clienteCedula = cliente?.cedula || 'N/A';
+                
+                row.innerHTML = `
+                    <td>
+                        <div>
+                            <div style="font-weight: 600;">${clienteNombre}</div>
+                            <div style="font-size: 0.85rem; color: #718096;">CI: ${clienteCedula}</div>
+                        </div>
+                    </td>
+                    <td>${formatCurrency(prestamo.monto_prestamo)}</td>
+                    <td>${prestamo.tasa_interes}%</td>
+                    <td>${prestamo.numero_cuotas}</td>
+                    <td>
+                        <span style="text-transform: capitalize;">${prestamo.frecuencia_pago}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${prestamo.estado}">
+                            ${prestamo.estado}
+                        </span>
+                    </td>
+                    <td>${fechaInicio}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-view" onclick="viewLoanDetail('${prestamo.id}')" title="Ver detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${prestamo.estado === 'activo' ? `
+                                <button class="btn-action btn-edit" onclick="editLoan('${prestamo.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-action btn-cancel" onclick="cancelLoan('${prestamo.id}', '${clienteNombre}')" title="Cancelar">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            addDebugInfo(`✅ Tabla renderizada con ${filteredPrestamos.length} filas`);
+        }
+
+        // FILTRAR PRÉSTAMOS
+        function filterPrestamos() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const estadoFilter = document.getElementById('estadoFilter').value;
+            const frecuenciaFilter = document.getElementById('frecuenciaFilter').value;
+            
+            filteredPrestamos = prestamos.filter(prestamo => {
+                const cliente = prestamo.clientes;
+                const matchesSearch = !searchTerm || 
+                    (cliente?.nombre_completo?.toLowerCase().includes(searchTerm)) ||
+                    (cliente?.cedula?.includes(searchTerm));
+                
+                const matchesEstado = !estadoFilter || prestamo.estado === estadoFilter;
+                const matchesFrecuencia = !frecuenciaFilter || prestamo.frecuencia_pago === frecuenciaFilter;
+                
+                return matchesSearch && matchesEstado && matchesFrecuencia;
+            });
+            
+            renderPrestamos();
+        }
+
+        // FUNCIONES DE MODAL Y ACCIONES
+        function openAddLoanModal() {
+            showNotification('Función de nuevo préstamo próximamente disponible', 'error');
+        }
+
+        function editLoan(loanId) {
+            showNotification('Función de editar préstamo próximamente disponible', 'error');
+        }
+
+        function cancelLoan(loanId, clientName) {
+            if (!confirm(`¿Estás seguro de que quieres cancelar el préstamo de ${clientName}?`)) {
+                return;
+            }
+            showNotification('Función de cancelar préstamo próximamente disponible', 'error');
+        }
+
+        function viewLoanDetail(loanId) {
+            const prestamo = prestamos.find(p => p.id === loanId);
+            if (!prestamo) {
+                showNotification('Préstamo no encontrado', 'error');
+                return;
+            }
+            
+            addDebugInfo('👁️ Viendo detalle del préstamo:', prestamo);
+            showNotification('Función de ver detalle próximamente disponible', 'error');
+        }
+
+        // FORMATEAR MONEDA
+        function formatCurrency(amount) {
+            try {
+                return new Intl.NumberFormat('es-EC', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(amount || 0);
+            } catch (error) {
+                addDebugInfo('⚠️ Error formateando moneda:', error);
+                return `${(amount || 0).toFixed(2)}`;
+            }
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // FUNCIONES DE NAVEGACIÓN
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                window.location.href = './';
+            }
+        }
+
+        // EVENTOS DE TECLADO
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                clearDebugInfo();
+            }
+            
+            // Ctrl + D = Toggle debug panel
+            if (event.ctrlKey && event.key === 'd') {
+                event.preventDefault();
+                const debugPanel = document.getElementById('debugPanel');
+                debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+            }
+            
+            // Ctrl + R = Reload data
+            if (event.ctrlKey && event.key === 'r') {
+                event.preventDefault();
+                clearDebugInfo();
+                loadData();
+            }
+        });
+
+        // AUTO-REFRESH CADA 2 MINUTOS
+        setInterval(() => {
+            addDebugInfo('🔄 Auto-refresh ejecutándose...');
+            loadPrestamos();
+        }, 120000);
+
+        // VERIFICAR CONFIGURACIÓN AL INICIO
+        function checkConfiguration() {
+            addDebugInfo('⚙️ Verificando configuración del sistema...');
+            
+            const requiredItems = [
+                'supabaseUrl',
+                'supabaseKey',
+                'userLoggedIn',
+                'username'
+            ];
+            
+            const missing = requiredItems.filter(item => !localStorage.getItem(item));
+            
+            if (missing.length > 0) {
+                addDebugInfo('❌ Configuración incompleta:', missing);
+                return false;
+            }
+            
+            addDebugInfo('✅ Configuración completa');
+            return true;
+        }
+
+        // FUNCIÓN DE DIAGNÓSTICO COMPLETO
+        async function runDiagnostics() {
+            addDebugInfo('🔧 Ejecutando diagnóstico completo...');
+            
+            // 1. Verificar configuración
+            checkConfiguration();
+            
+            // 2. Verificar conexión a internet
+            try {
+                await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors' });
+                addDebugInfo('✅ Conexión a internet activa');
+            } catch (error) {
+                addDebugInfo('❌ Sin conexión a internet', error);
+            }
+            
+            // 3. Verificar Supabase
+            if (supabase) {
+                try {
+                    const { data, error } = await supabase
+                        .from('creditos')
+                        .select('count(*)', { count: 'exact', head: true });
+                    
+                    if (error) {
+                        addDebugInfo('❌ Error conectando con Supabase', error);
+                    } else {
+                        addDebugInfo('✅ Supabase conectado correctamente');
+                    }
+                } catch (error) {
+                    addDebugInfo('❌ Error crítico con Supabase', error);
+                }
+            } else {
+                addDebugInfo('❌ Cliente de Supabase no inicializado');
+            }
+            
+            // 4. Verificar estructura de datos
+            if (prestamos.length > 0) {
+                const sampleLoan = prestamos[0];
+                const requiredFields = ['id', 'cliente_id', 'monto_prestamo', 'estado'];
+                const missingFields = requiredFields.filter(field => !(field in sampleLoan));
+                
+                if (missingFields.length > 0) {
+                    addDebugInfo('⚠️ Campos faltantes en préstamos:', missingFields);
+                } else {
+                    addDebugInfo('✅ Estructura de datos de préstamos correcta');
+                }
+            }
+            
+            addDebugInfo('🏁 Diagnóstico completo finalizado');
+        }
+
+        // Ejecutar diagnóstico después de 5 segundos
+        setTimeout(runDiagnostics, 5000);
+    </script>
+</body>
+</html>
