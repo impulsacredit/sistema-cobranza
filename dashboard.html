@@ -705,11 +705,12 @@
                     </div>
                     <div class="quick-action-title">Registrar Pago</div>
                 </div>
-                <div class="quick-action" onclick="proximamente('Enviar Recordatorios')">
+                     <div class="quick-action" onclick="window.location.href='inversiones.html'">
                     <div class="quick-action-icon">
-                        <i class="fas fa-paper-plane"></i>
-                    </div>
-                    <div class="quick-action-title">Recordatorios</div>
+                  <i class="fas fa-seedling"></i>
+                </div>
+                    <div class="quick-action-title">Gestionar Capital</div>
+               </div>
                 </div>
             </div>
         </div>
@@ -804,67 +805,94 @@
             }).format(amount || 0);
         }
 
-        // CARGAR ESTADÍSTICAS PRINCIPALES
-        async function loadMainStats() {
-            try {
-                // Total clientes
-                const { count: totalClientes } = await supabase
-                    .from('clientes')
-                    .select('*', { count: 'exact', head: true });
+       // CARGAR ESTADÍSTICAS PRINCIPALES
+async function loadMainStats() {
+    try {
+        // Total clientes
+        const { count: totalClientes } = await supabase
+            .from('clientes')
+            .select('*', { count: 'exact', head: true });
 
-                // Créditos activos
-                const { count: creditosActivos } = await supabase
-                    .from('creditos')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('estado', 'activo');
+        // Créditos activos
+        const { count: creditosActivos } = await supabase
+            .from('creditos')
+            .select('*', { count: 'exact', head: true })
+            .eq('estado', 'activo');
 
-                // Total prestado
-                const { data: totalPrestadoData } = await supabase
-                    .from('creditos')
-                    .select('monto_prestamo')
-                    .eq('estado', 'activo');
+        // Total prestado
+        const { data: totalPrestadoData } = await supabase
+            .from('creditos')
+            .select('monto_prestamo')
+            .eq('estado', 'activo');
 
-                const totalPrestado = totalPrestadoData?.reduce((sum, credito) => 
-                    sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
+        const totalPrestado = totalPrestadoData?.reduce((sum, credito) => 
+            sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
 
-                // Cuotas vencidas
-                const today = new Date().toISOString().split('T')[0];
-                const { count: cuotasVencidas } = await supabase
-                    .from('cuotas')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('estado', 'pendiente')
-                    .lte('fecha_vencimiento', today);
+        // ✅ NUEVO: Capital de inversiones
+        const { data: inversionesData } = await supabase
+            .from('inversiones')
+            .select('monto, estado')
+            .eq('estado', 'activo');
 
-                // Pagos de hoy
-                const { data: pagosHoyData } = await supabase
-                    .from('pagos')
-                    .select('monto_pagado')
-                    .gte('fecha_pago', today);
+        const capitalTotal = inversionesData?.reduce((sum, inv) => 
+            sum + (parseFloat(inv.monto) || 0), 0) || 0;
 
-                const pagosHoy = pagosHoyData?.reduce((sum, pago) => 
-                    sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
+        const capitalDisponible = capitalTotal - totalPrestado;
 
-                // Saldo en caja
-                const { data: saldoCajaData } = await supabase
-                    .from('movimientos_caja')
-                    .select('saldo_posterior')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+        // Cuotas vencidas
+        const today = new Date().toISOString().split('T')[0];
+        const { count: cuotasVencidas } = await supabase
+            .from('cuotas')
+            .select('*', { count: 'exact', head: true })
+            .eq('estado', 'pendiente')
+            .lte('fecha_vencimiento', today);
 
-                const saldoCaja = saldoCajaData?.[0]?.saldo_posterior || 0;
+        // Pagos de hoy
+        const { data: pagosHoyData } = await supabase
+            .from('pagos')
+            .select('monto_pagado')
+            .gte('fecha_pago', today);
 
-                // Actualizar UI
-                document.getElementById('totalClientes').textContent = totalClientes || 0;
-                document.getElementById('creditosActivos').textContent = creditosActivos || 0;
-                document.getElementById('totalPrestado').textContent = formatCurrency(totalPrestado);
-                document.getElementById('cuotasVencidas').textContent = cuotasVencidas || 0;
-                document.getElementById('pagosHoy').textContent = formatCurrency(pagosHoy);
-                document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
+        const pagosHoy = pagosHoyData?.reduce((sum, pago) => 
+            sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
 
-            } catch (error) {
-                console.error('Error cargando estadísticas:', error);
-            }
+        // Saldo en caja
+        const { data: saldoCajaData } = await supabase
+            .from('movimientos_caja')
+            .select('saldo_posterior')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        const saldoCaja = saldoCajaData?.[0]?.saldo_posterior || 0;
+
+        // Actualizar UI
+        document.getElementById('totalClientes').textContent = totalClientes || 0;
+        document.getElementById('creditosActivos').textContent = creditosActivos || 0;
+        document.getElementById('totalPrestado').textContent = formatCurrency(totalPrestado);
+        document.getElementById('cuotasVencidas').textContent = cuotasVencidas || 0;
+        document.getElementById('pagosHoy').textContent = formatCurrency(pagosHoy);
+        document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
+        
+        // ✅ NUEVO: Actualizar capital disponible
+        document.getElementById('capitalDisponible').textContent = formatCurrency(capitalDisponible);
+
+        // ✅ NUEVO: Cambiar color según disponibilidad
+        const capitalElement = document.getElementById('capitalDisponible');
+        if (capitalDisponible <= 0) {
+            capitalElement.style.color = '#f56565';
+            document.getElementById('capitalChange').textContent = 'Sin capital';
+        } else if (capitalDisponible < 1000) {
+            capitalElement.style.color = '#ed8936';
+            document.getElementById('capitalChange').textContent = 'Capital bajo';
+        } else {
+            capitalElement.style.color = '#48bb78';
+            document.getElementById('capitalChange').textContent = 'Para préstamos';
         }
+
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+}
 
         // CARGAR ACTIVIDAD RECIENTE
         async function loadRecentActivity() {
