@@ -1282,15 +1282,7 @@
             } else {
                 clearCalculations();
             }
-            // CALCULAR PRÉSTAMO
-function calculateLoan() {
-    const monto = parseFloat(document.getElementById('monto_prestamo').value) || 0;
-    const tasa = parseFloat(document.getElementById('tasa_interes').value) || 0;
-    const cuotas = parseInt(document.getElementById('numero_cuotas').value) || 0;
-    const frecuencia = document.getElementById('frecuencia_pago').value;
-    const fechaInicio = document.getElementById('fecha_inicio').value;
-
-    if (monto > 0 && tasa > 0 && cuotas > 0 && frecuencia && fechaInicio) {
+           
         // Calcular interés simple
         const tasaDecimal = tasa / 100;
         const montoTotal = monto * (1 + tasaDecimal);
