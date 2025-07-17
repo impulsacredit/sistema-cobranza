@@ -1,4 +1,1024 @@
-<!DOCTYPE html>
+<div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeLoanModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary" id="saveButton">
+                        <i class="fas fa-save"></i> Crear Préstamo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CALCULADORA -->
+    <div id="calculatorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Calculadora de Préstamos</h3>
+                <button class="btn-close" onclick="closeCalculatorModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Monto a Prestar</label>
+                    <input type="number" id="calc_monto" class="form-input" 
+                           min="100" step="0.01" oninput="updateCalculator()">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tasa de Interés (%)</label>
+                    <input type="number" id="calc_tasa" class="form-input" 
+                           min="0.1" max="50" step="0.1" oninput="updateCalculator()">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Número de Cuotas</label>
+                    <input type="number" id="calc_cuotas" class="form-input" 
+                           min="1" max="60" oninput="updateCalculator()">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Frecuencia</label>
+                    <select id="calc_frecuencia" class="form-select" onchange="updateCalculator()">
+                        <option value="semanal">Semanal</option>
+                        <option value="quincenal">Quincenal</option>
+                        <option value="mensual">Mensual</option>
+                        <option value="diario">Diario</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="calculation-section">
+                <div class="calculation-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Resultados del Cálculo
+                </div>
+                <div class="calculation-grid">
+                    <div class="calculation-item">
+                        <div class="calculation-label">Monto Prestado</div>
+                        <div class="calculation-value" id="result_monto">$0.00</div>
+                    </div>
+                    <div class="calculation-item">
+                        <div class="calculation-label">Total Intereses</div>
+                        <div class="calculation-value" id="result_intereses">$0.00</div>
+                    </div>
+                    <div class="calculation-item">
+                        <div class="calculation-label">Total a Pagar</div>
+                        <div class="calculation-value" id="result_total">$0.00</div>
+                    </div>
+                    <div class="calculation-item">
+                        <div class="calculation-label">Cuota por Período</div>
+                        <div class="calculation-value" id="result_cuota">$0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLE DE PRÉSTAMO -->
+    <div id="loanDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalle del Préstamo</h3>
+                <button class="btn-close" onclick="closeLoanDetailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="loanDetailContent">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let supabase = null;
+        let prestamos = [];
+        let filteredPrestamos = [];
+        let clientes = [];
+        let editingLoanId = null;
+        let saldoCaja = 0; // 🆕 VARIABLE PARA SALDO EN CAJA
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            if (!localStorage.getItem('userLoggedIn')) {
+                window.location.href = './';
+                return;
+            }
+
+            // Mostrar usuario
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('username').textContent = username;
+
+            // Establecer fecha por defecto
+            document.getElementById('fecha_inicio').value = new Date().toISOString().split('T')[0];
+
+            // Inicializar Supabase
+            initSupabase();
+        });
+
+        // CONFIGURAR SUPABASE
+        function initSupabase() {
+            const url = localStorage.getItem('supabaseUrl');
+            const key = localStorage.getItem('supabaseKey');
+            
+            if (!url || !key) {
+                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
+                setTimeout(() => {
+                    window.location.href = './';
+                }, 2000);
+                return;
+            }
+            
+            if (typeof window.supabase === 'undefined') {
+                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
+                return;
+            }
+            
+            supabase = window.supabase.createClient(url, key);
+            loadData();
+        }
+
+        // 🆕 CARGAR DATOS INICIALES (AHORA INCLUYE SALDO EN CAJA)
+        async function loadData() {
+            try {
+                await Promise.all([
+                    loadClientes(),
+                    loadPrestamos(),
+                    loadSaldoCaja() // 🆕 Cargar saldo en caja
+                ]);
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showNotification('Error cargando datos: ' + error.message, 'error');
+            }
+        }
+
+        // 🆕 CARGAR SALDO EN CAJA
+        async function loadSaldoCaja() {
+            try {
+                // Obtener el saldo del dashboard (desde localStorage si está guardado)
+                const dashboardSaldo = localStorage.getItem('saldoCaja');
+                if (dashboardSaldo) {
+                    saldoCaja = parseFloat(dashboardSaldo);
+                } else {
+                    // Si no hay saldo guardado, intentar calcularlo desde transacciones
+                    const { data: transacciones, error } = await supabase
+                        .from('transacciones')
+                        .select('monto, tipo');
+
+                    if (!error && transacciones) {
+                        const ingresos = transacciones.filter(t => t.tipo === 'ingreso');
+                        const egresos = transacciones.filter(t => t.tipo === 'egreso');
+
+                        const totalIngresos = ingresos.reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
+                        const totalEgresos = egresos.reduce((sum, t) => sum + parseFloat(t.monto || 0), 0);
+
+                        saldoCaja = totalIngresos - totalEgresos;
+                    } else {
+                        // Valor por defecto
+                        saldoCaja = 5000; // Puedes cambiar este valor inicial
+                    }
+                }
+
+                // Actualizar UI
+                document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
+
+            } catch (error) {
+                console.error('Error cargando saldo en caja:', error);
+                saldoCaja = 0;
+                document.getElementById('saldoCaja').textContent = '$0.00';
+            }
+        }
+
+        // 🆕 FUNCIÓN PARA AJUSTAR SALDO EN CAJA
+        function adjustCashBalance() {
+            const nuevoSaldo = prompt(`💰 AJUSTAR SALDO EN CAJA
+
+🏦 Saldo actual: ${formatCurrency(saldoCaja)}
+
+Ingrese el nuevo saldo en caja:
+(Solo números, ejemplo: 5000.50)`, saldoCaja);
+
+            if (nuevoSaldo !== null) {
+                const saldoNumerico = parseFloat(nuevoSaldo);
+                
+                if (isNaN(saldoNumerico) || saldoNumerico < 0) {
+                    showNotification('❌ Por favor ingrese un valor numérico válido mayor o igual a 0', 'error');
+                    return;
+                }
+
+                const saldoAnterior = saldoCaja;
+                saldoCaja = saldoNumerico;
+                
+                // Guardar en localStorage para persistencia
+                localStorage.setItem('saldoCaja', saldoCaja);
+                
+                // Actualizar UI
+                document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
+                
+                showNotification(`✅ Saldo en caja actualizado
+💰 Anterior: ${formatCurrency(saldoAnterior)}
+💰 Nuevo: ${formatCurrency(saldoCaja)}`, 'success');
+            }
+        }
+
+        // CARGAR CLIENTES PARA SELECT
+        async function loadClientes() {
+            try {
+                const { data, error } = await supabase
+                    .from('clientes')
+                    .select('id, nombre_completo, cedula')
+                    .order('nombre_completo');
+
+                if (error) throw error;
+
+                clientes = data || [];
+                
+                // Llenar select de clientes
+                const clienteSelect = document.getElementById('cliente_id');
+                clienteSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
+                
+                clientes.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    option.textContent = `${cliente.nombre_completo} (CI: ${cliente.cedula})`;
+                    clienteSelect.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error cargando clientes:', error);
+                showNotification('Error cargando clientes: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR PRÉSTAMOS
+        async function loadPrestamos() {
+            try {
+                document.getElementById('loadingPrestamos').style.display = 'flex';
+                document.getElementById('prestamosContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+
+                const { data, error } = await supabase
+                    .from('creditos')
+                    .select(`
+                        *,
+                        clientes (
+                            id,
+                            nombre_completo,
+                            cedula
+                        )
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                prestamos = data || [];
+                filteredPrestamos = [...prestamos];
+                
+                updateStats();
+                renderPrestamos();
+                
+                document.getElementById('loadingPrestamos').style.display = 'none';
+                
+                if (prestamos.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    document.getElementById('prestamosContainer').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error cargando préstamos:', error);
+                document.getElementById('loadingPrestamos').style.display = 'none';
+                showNotification('Error cargando préstamos: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS
+        function updateStats() {
+            const total = prestamos.length;
+            const activos = prestamos.filter(p => p.estado === 'activo').length;
+            const montoTotal = prestamos
+                .filter(p => p.estado === 'activo')
+                .reduce((sum, p) => sum + (parseFloat(p.monto_prestamo) || 0), 0);
+            const promedio = activos > 0 ? montoTotal / activos : 0;
+
+            document.getElementById('totalPrestamos').textContent = total;
+            document.getElementById('prestamosActivos').textContent = activos;
+            document.getElementById('montoTotal').textContent = formatCurrency(montoTotal);
+            document.getElementById('montoPromedio').textContent = formatCurrency(promedio);
+        }
+
+        // RENDERIZAR TABLA
+        function renderPrestamos() {
+            const tbody = document.getElementById('prestamosTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('prestamosCount').textContent = 
+                `${filteredPrestamos.length} préstamo${filteredPrestamos.length !== 1 ? 's' : ''}`;
+
+            filteredPrestamos.forEach(prestamo => {
+                const row = document.createElement('tr');
+                
+                const fechaInicio = new Date(prestamo.fecha_inicio).toLocaleDateString('es-EC');
+                const cliente = prestamo.clientes;
+                
+                row.innerHTML = `
+                    <td>
+                        <div>
+                            <div style="font-weight: 600;">${cliente?.nombre_completo || 'Cliente no encontrado'}</div>
+                            <div style="font-size: 0.85rem; color: #718096;">CI: ${cliente?.cedula || 'N/A'}</div>
+                        </div>
+                    </td>
+                    <td>${formatCurrency(prestamo.monto_prestamo)}</td>
+                    <td>${prestamo.tasa_interes}%</td>
+                    <td>${prestamo.numero_cuotas}</td>
+                    <td>
+                        <span style="text-transform: capitalize;">${prestamo.frecuencia_pago}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${prestamo.estado}">
+                            ${prestamo.estado}
+                        </span>
+                    </td>
+                    <td>${fechaInicio}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-view" onclick="viewLoanDetail('${prestamo.id}')" title="Ver detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${prestamo.estado === 'activo' ? `
+                                <button class="btn-action btn-edit" onclick="editLoan('${prestamo.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-action btn-cancel" onclick="cancelLoan('${prestamo.id}', '${cliente?.nombre_completo}')" title="Cancelar">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // FILTRAR PRÉSTAMOS
+        function filterPrestamos() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const estadoFilter = document.getElementById('estadoFilter').value;
+            const frecuenciaFilter = document.getElementById('frecuenciaFilter').value;
+            
+            filteredPrestamos = prestamos.filter(prestamo => {
+                const cliente = prestamo.clientes;
+                const matchesSearch = !searchTerm || 
+                    (cliente?.nombre_completo?.toLowerCase().includes(searchTerm)) ||
+                    (cliente?.cedula?.includes(searchTerm));
+                
+                const matchesEstado = !estadoFilter || prestamo.estado === estadoFilter;
+                const matchesFrecuencia = !frecuenciaFilter || prestamo.frecuencia_pago === frecuenciaFilter;
+                
+                return matchesSearch && matchesEstado && matchesFrecuencia;
+            });
+            
+            renderPrestamos();
+        }
+
+        // ABRIR MODAL NUEVO PRÉSTAMO
+        function openAddLoanModal() {
+            if (clientes.length === 0) {
+                showNotification('No hay clientes registrados. Registra un cliente primero.', 'error');
+                return;
+            }
+
+            editingLoanId = null;
+            document.getElementById('modalTitle').textContent = 'Nuevo Préstamo';
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Crear Préstamo';
+            document.getElementById('loanForm').reset();
+            document.getElementById('fecha_inicio').value = new Date().toISOString().split('T')[0];
+            clearCalculations();
+            document.getElementById('loanModal').classList.add('show');
+        }
+
+        // EDITAR PRÉSTAMO
+        function editLoan(loanId) {
+            const prestamo = prestamos.find(p => p.id === loanId);
+            if (!prestamo) return;
+
+            editingLoanId = loanId;
+            document.getElementById('modalTitle').textContent = 'Editar Préstamo';
+            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Actualizar Préstamo';
+            
+            // Llenar formulario
+            document.getElementById('cliente_id').value = prestamo.cliente_id;
+            document.getElementById('monto_prestamo').value = prestamo.monto_prestamo;
+            document.getElementById('tasa_interes').value = prestamo.tasa_interes;
+            document.getElementById('numero_cuotas').value = prestamo.numero_cuotas;
+            document.getElementById('frecuencia_pago').value = prestamo.frecuencia_pago;
+            document.getElementById('fecha_inicio').value = prestamo.fecha_inicio;
+            document.getElementById('observaciones').value = prestamo.observaciones || '';
+            
+            calculateLoan();
+            document.getElementById('loanModal').classList.add('show');
+        }
+
+        // CERRAR MODAL PRÉSTAMO
+        function closeLoanModal() {
+            document.getElementById('loanModal').classList.remove('show');
+            document.getElementById('loanForm').reset();
+            editingLoanId = null;
+            clearCalculations();
+        }
+
+        // CALCULAR PRÉSTAMO
+        function calculateLoan() {
+            const monto = parseFloat(document.getElementById('monto_prestamo').value) || 0;
+            const tasa = parseFloat(document.getElementById('tasa_interes').value) || 0;
+            const cuotas = parseInt(document.getElementById('numero_cuotas').value) || 0;
+            const frecuencia = document.getElementById('frecuencia_pago').value;
+            const fechaInicio = document.getElementById('fecha_inicio').value;
+
+            if (monto > 0 && tasa > 0 && cuotas > 0 && frecuencia && fechaInicio) {
+                // Calcular interés simple
+                const tasaDecimal = tasa / 100;
+                const montoTotal = monto * (1 + tasaDecimal);
+                const montoCuota = montoTotal / cuotas;
+
+                // Calcular fecha de vencimiento
+                const fechaVencimiento = calculateEndDate(new Date(fechaInicio), cuotas, frecuencia);
+
+                // Actualizar UI
+                document.getElementById('calc_monto_prestamo').textContent = formatCurrency(monto);
+                document.getElementById('calc_monto_total').textContent = formatCurrency(montoTotal);
+                document.getElementById('calc_monto_cuota').textContent = formatCurrency(montoCuota);
+                document.getElementById('calc_fecha_vencimiento').textContent = fechaVencimiento.toLocaleDateString('es-EC');
+            } else {
+                clearCalculations();
+            }
+        }
+
+        // LIMPIAR CÁLCULOS
+        function clearCalculations() {
+            document.getElementById('calc_monto_prestamo').textContent = '$0.00';
+            document.getElementById('calc_monto_total').textContent = '$0.00';
+            document.getElementById('calc_monto_cuota').textContent = '$0.00';
+            document.getElementById('calc_fecha_vencimiento').textContent = '--';
+        }
+
+        // CALCULAR FECHA DE VENCIMIENTO
+        function calculateEndDate(startDate, cuotas, frecuencia) {
+            const date = new Date(startDate);
+            
+            switch (frecuencia) {
+                case 'diario':
+                    date.setDate(date.getDate() + cuotas);
+                    break;
+                case 'semanal':
+                    date.setDate(date.getDate() + (cuotas * 7));
+                    break;
+                case 'quincenal':
+                    date.setDate(date.getDate() + (cuotas * 15));
+                    break;
+                case 'mensual':
+                    date.setMonth(date.getMonth() + cuotas);
+                    break;
+            }
+            
+            return date;
+        }
+
+        // 🆕 GUARDAR PRÉSTAMO CON VALIDACIÓN DE SALDO EN CAJA
+        async function saveLoan(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const monto = parseFloat(formData.get('monto_prestamo'));
+            const tasa = parseFloat(formData.get('tasa_interes'));
+            const cuotas = parseInt(formData.get('numero_cuotas'));
+            const frecuencia = formData.get('frecuencia_pago');
+            const fechaInicio = new Date(formData.get('fecha_inicio'));
+
+            // 🆕 VALIDACIÓN CRÍTICA: VERIFICAR SALDO EN CAJA ANTES DE CREAR PRÉSTAMO
+            if (!editingLoanId) { // Solo para préstamos nuevos
+                if (monto > saldoCaja) {
+                    const mensaje = `❌ FONDOS INSUFICIENTES
+
+🏦 Saldo disponible en caja: ${formatCurrency(saldoCaja)}
+💰 Monto del préstamo solicitado: ${formatCurrency(monto)}
+📉 Déficit: ${formatCurrency(monto - saldoCaja)}
+
+❗ No es posible otorgar este préstamo porque excede el saldo disponible en caja.
+
+💡 Soluciones:
+• Reducir el monto del préstamo a máximo ${formatCurrency(saldoCaja)}
+• Ingresar más fondos a la caja usando el botón "Ajustar Caja"`;
+
+                    showNotification(mensaje, 'error');
+                    return; // 🛑 DETENER AQUÍ - NO CONTINUAR CON EL GUARDADO
+                }
+
+                // 🆕 ADVERTENCIA ADICIONAL: Si queda muy poco dinero en caja
+                const saldoRestante = saldoCaja - monto;
+                if (saldoRestante < 100) {
+                    const confirmar = confirm(`⚠️ ADVERTENCIA DE LIQUIDEZ
+
+🏦 Saldo actual en caja: ${formatCurrency(saldoCaja)}
+💰 Préstamo a otorgar: ${formatCurrency(monto)}
+💳 Saldo restante: ${formatCurrency(saldoRestante)}
+
+⚡ Después de este préstamo quedarán solo ${formatCurrency(saldoRestante)} en caja.
+
+¿Está seguro de continuar con este préstamo?
+
+✅ SÍ - Continuar con el préstamo
+❌ NO - Cancelar y revisar`);
+
+                    if (!confirmar) {
+                        return; // 🛑 Usuario decidió cancelar
+                    }
+                }
+            }
+
+            // Calcular valores
+            const tasaDecimal = tasa / 100;
+            const montoTotal = monto * (1 + tasaDecimal);
+            const montoCuota = montoTotal / cuotas;
+            const fechaVencimiento = calculateEndDate(fechaInicio, cuotas, frecuencia);
+
+            const loanData = {
+                cliente_id: formData.get('cliente_id'),
+                monto_prestamo: monto,
+                tasa_interes: tasa,
+                numero_cuotas: cuotas,
+                frecuencia_pago: frecuencia,
+                fecha_inicio: formData.get('fecha_inicio'),
+                fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0],
+                monto_total: montoTotal,
+                monto_cuota: montoCuota,
+                estado: 'activo',
+                observaciones: formData.get('observaciones') || null
+            };
+
+            try {
+                document.getElementById('saveButton').disabled = true;
+                document.getElementById('saveButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+                let result;
+                
+                if (editingLoanId) {
+                    // Actualizar préstamo existente
+                    result = await supabase
+                        .from('creditos')
+                        .update(loanData)
+                        .eq('id', editingLoanId);
+                } else {
+                    // Crear nuevo préstamo
+                    result = await supabase
+                        .from('creditos')
+                        .insert([loanData])
+                        .select();
+
+                    // Si es nuevo préstamo, generar cuotas
+                    if (result.data && result.data[0]) {
+                        await generateCuotas(result.data[0]);
+                    }
+                }
+
+                if (result.error) throw result.error;
+
+                // 🆕 SI ES PRÉSTAMO NUEVO, ACTUALIZAR SALDO EN CAJA
+                if (!editingLoanId) {
+                    saldoCaja -= monto;
+                    document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
+                    // Guardar en localStorage
+                    localStorage.setItem('saldoCaja', saldoCaja);
+                }
+
+                showNotification(
+                    editingLoanId ? 'Préstamo actualizado exitosamente' : 
+                    `✅ Préstamo creado exitosamente\n💰 Nuevo saldo en caja: ${formatCurrency(saldoCaja)}`,
+                    'success'
+                );
+
+                closeLoanModal();
+                loadPrestamos();
+
+            } catch (error) {
+                console.error('Error guardando préstamo:', error);
+                showNotification('Error guardando préstamo: ' + error.message, 'error');
+            } finally {
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('saveButton').innerHTML = editingLoanId ? 
+                    '<i class="fas fa-save"></i> Actualizar Préstamo' : 
+                    '<i class="fas fa-save"></i> Crear Préstamo';
+            }
+        }
+
+        // GENERAR CUOTAS
+        async function generateCuotas(prestamo) {
+            try {
+                const cuotas = [];
+                const fechaInicio = new Date(prestamo.fecha_inicio);
+                
+                for (let i = 1; i <= prestamo.numero_cuotas; i++) {
+                    const fechaVencimiento = new Date(fechaInicio);
+                    
+                    switch (prestamo.frecuencia_pago) {
+                        case 'diario':
+                            fechaVencimiento.setDate(fechaInicio.getDate() + i);
+                            break;
+                        case 'semanal':
+                            fechaVencimiento.setDate(fechaInicio.getDate() + (i * 7));
+                            break;
+                        case 'quincenal':
+                            fechaVencimiento.setDate(fechaInicio.getDate() + (i * 15));
+                            break;
+                        case 'mensual':
+                            fechaVencimiento.setMonth(fechaInicio.getMonth() + i);
+                            break;
+                    }
+                    
+                    cuotas.push({
+                        credito_id: prestamo.id,
+                        numero_cuota: i,
+                        monto_cuota: prestamo.monto_cuota,
+                        fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0],
+                        estado: 'pendiente'
+                    });
+                }
+
+                const { error } = await supabase
+                    .from('cuotas')
+                    .insert(cuotas);
+
+                if (error) throw error;
+
+            } catch (error) {
+                console.error('Error generando cuotas:', error);
+                showNotification('Préstamo creado pero hubo un error generando las cuotas', 'error');
+            }
+        }
+
+        // CANCELAR PRÉSTAMO
+        async function cancelLoan(loanId, clientName) {
+            if (!confirm(`¿Estás seguro de que quieres cancelar el préstamo de ${clientName}?\n\nEsta acción marcará el préstamo como cancelado.`)) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('creditos')
+                    .update({ estado: 'cancelado' })
+                    .eq('id', loanId);
+
+                if (error) throw error;
+
+                showNotification('Préstamo cancelado exitosamente', 'success');
+                loadPrestamos();
+
+            } catch (error) {
+                console.error('Error cancelando préstamo:', error);
+                showNotification('Error cancelando préstamo: ' + error.message, 'error');
+            }
+        }
+
+        // VER DETALLE DEL PRÉSTAMO
+        async function viewLoanDetail(loanId) {
+            try {
+                const prestamo = prestamos.find(p => p.id === loanId);
+                if (!prestamo) return;
+
+                // Cargar cuotas del préstamo
+                const { data: cuotas, error } = await supabase
+                    .from('cuotas')
+                    .select('*')
+                    .eq('credito_id', loanId)
+                    .order('numero_cuota');
+
+                if (error) throw error;
+
+                const content = `
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #2d3748;">Información del Préstamo</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                                <div style="color: #718096; font-size: 0.9rem;">Cliente</div>
+                                <div style="font-weight: 600; color: #2d3748;">${prestamo.clientes?.nombre_completo}</div>
+                            </div>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                                <div style="font-weight: 600; color: #2d3748;">${formatCurrency(prestamo.monto_prestamo)}</div>
+                            </div>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                                <div style="color: #718096; font-size: 0.9rem;">Total a Pagar</div>
+                                <div style="font-weight: 600; color: #2d3748;">${formatCurrency(prestamo.monto_total)}</div>
+                            </div>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 10px;">
+                                <div style="color: #718096; font-size: 0.9rem;">Cuota por Período</div>
+                                <div style="font-weight: 600; color: #2d3748;">${formatCurrency(prestamo.monto_cuota)}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: #2d3748;">Cronograma de Pagos</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0;">Cuota</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0;">Fecha Vencimiento</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0;">Monto</th>
+                                        <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${cuotas.map(cuota => `
+                                        <tr>
+                                            <td style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9;">${cuota.numero_cuota}</td>
+                                            <td style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9;">${new Date(cuota.fecha_vencimiento).toLocaleDateString('es-EC')}</td>
+                                            <td style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9;">${formatCurrency(cuota.monto_cuota)}</td>
+                                            <td style="padding: 0.75rem; border-bottom: 1px solid #f1f5f9;">
+                                                <span class="status-badge status-${cuota.estado}">${cuota.estado}</span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('loanDetailContent').innerHTML = content;
+                document.getElementById('loanDetailModal').classList.add('show');
+
+            } catch (error) {
+                console.error('Error cargando detalle:', error);
+                showNotification('Error cargando detalle del préstamo', 'error');
+            }
+        }
+
+        // CERRAR MODAL DETALLE
+        function closeLoanDetailModal() {
+            document.getElementById('loanDetailModal').classList.remove('show');
+        }
+
+        // ABRIR CALCULADORA
+        function openCalculatorModal() {
+            // Valores por defecto
+            document.getElementById('calc_monto').value = 1000;
+            document.getElementById('calc_tasa').value = 3;
+            document.getElementById('calc_cuotas').value = 12;
+            document.getElementById('calc_frecuencia').value = 'diario';
+            
+            updateCalculator();
+            document.getElementById('calculatorModal').classList.add('show');
+        }
+
+        // CERRAR CALCULADORA
+        function closeCalculatorModal() {
+            document.getElementById('calculatorModal').classList.remove('show');
+        }
+
+        // ACTUALIZAR CALCULADORA
+        function updateCalculator() {
+            const monto = parseFloat(document.getElementById('calc_monto').value) || 0;
+            const tasa = parseFloat(document.getElementById('calc_tasa').value) || 0;
+            const cuotas = parseInt(document.getElementById('calc_cuotas').value) || 0;
+
+            if (monto > 0 && tasa > 0 && cuotas > 0) {
+                const tasaDecimal = tasa / 100;
+                const montoTotal = monto * (1 + tasaDecimal);
+                const intereses = montoTotal - monto;
+                const montoCuota = montoTotal / cuotas;
+
+                document.getElementById('result_monto').textContent = formatCurrency(monto);
+                document.getElementById('result_intereses').textContent = formatCurrency(intereses);
+                document.getElementById('result_total').textContent = formatCurrency(montoTotal);
+                document.getElementById('result_cuota').textContent = formatCurrency(montoCuota);
+            } else {
+                document.getElementById('result_monto').textContent = '$0.00';
+                document.getElementById('result_intereses').textContent = '$0.00';
+                document.getElementById('result_total').textContent = '$0.00';
+                document.getElementById('result_cuota').textContent = '$0.00';
+            }
+        }
+
+        // FORMATEAR MONEDA
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-EC', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // FUNCIONES DE NAVEGACIÓN
+        function proximamente(modulo) {
+            showNotification(`🚀 Próximamente: ${modulo}`, 'error');
+        }
+
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                localStorage.removeItem('saldoCaja'); // 🆕 Limpiar saldo guardado
+                window.location.href = './';
+            }
+        }
+
+        // EVENTOS DE TECLADO
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLoanModal();
+                closeCalculatorModal();
+                closeLoanDetailModal();
+            }
+
+            // Ctrl + N = Nuevo préstamo
+            if (event.ctrlKey && event.key === 'n') {
+                event.preventDefault();
+                openAddLoanModal();
+            }
+            
+            // Ctrl + K = Calculadora
+            if (event.ctrlKey && event.key === 'k') {
+                event.preventDefault();
+                openCalculatorModal();
+            }
+
+            // Ctrl + A = Ajustar caja
+            if (event.ctrlKey && event.key === 'a') {
+                event.preventDefault();
+                adjustCashBalance();
+            }
+        });
+
+        // CERRAR MODALES CLICKEANDO FUERA
+        ['loanModal', 'calculatorModal', 'loanDetailModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', function(event) {
+                if (event.target === this) {
+                    if (modalId === 'loanModal') closeLoanModal();
+                    if (modalId === 'calculatorModal') closeCalculatorModal();
+                    if (modalId === 'loanDetailModal') closeLoanDetailModal();
+                }
+            });
+        });
+
+        // VALIDACIÓN DE CAMPOS NUMÉRICOS
+        document.getElementById('monto_prestamo').addEventListener('input', function(e) {
+            if (parseFloat(e.target.value) < 0) e.target.value = '';
+        });
+
+        document.getElementById('tasa_interes').addEventListener('input', function(e) {
+            if (parseFloat(e.target.value) < 0 || parseFloat(e.target.value) > 50) {
+                if (parseFloat(e.target.value) > 50) e.target.value = 50;
+                if (parseFloat(e.target.value) < 0) e.target.value = '';
+            }
+        });
+
+        document.getElementById('numero_cuotas').addEventListener('input', function(e) {
+            if (parseInt(e.target.value) < 1 || parseInt(e.target.value) > 60) {
+                if (parseInt(e.target.value) > 60) e.target.value = 60;
+                if (parseInt(e.target.value) < 1) e.target.value = '';
+            }
+        });
+
+        // AUTO-REFRESH CADA 60 SEGUNDOS
+        setInterval(() => {
+            loadPrestamos();
+        }, 60000);
+
+        // VALIDAR FECHA DE INICIO (no puede ser anterior a hoy)
+        document.getElementById('fecha_inicio').addEventListener('change', function(e) {
+            const selectedDate = new Date(e.target.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (selectedDate < today) {
+                showNotification('La fecha de inicio no puede ser anterior a hoy', 'error');
+                e.target.value = new Date().toISOString().split('T')[0];
+            }
+            
+            calculateLoan();
+        });
+
+        // FORMATEAR CAMPOS DE DINERO MIENTRAS SE ESCRIBE
+        ['monto_prestamo', 'calc_monto'].forEach(fieldId => {
+            document.getElementById(fieldId).addEventListener('blur', function(e) {
+                if (e.target.value) {
+                    const value = parseFloat(e.target.value);
+                    if (!isNaN(value)) {
+                        e.target.value = value.toFixed(2);
+                    }
+                }
+            });
+        });
+
+        // TOOLTIP PARA CAMPOS CON INFORMACIÓN ADICIONAL
+        const tooltips = {
+            'tasa_interes': 'Tasa de interés simple anual (ejemplo: 3.5 para 3.5%)',
+            'numero_cuotas': 'Número total de cuotas a pagar',
+            'frecuencia_pago': 'Con qué frecuencia se realizarán los pagos'
+        };
+
+        Object.keys(tooltips).forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.title = tooltips[fieldId];
+            }
+        });
+
+        // VALIDACIÓN ADICIONAL DEL FORMULARIO
+        document.getElementById('loanForm').addEventListener('submit', function(e) {
+            const clienteId = document.getElementById('cliente_id').value;
+            const monto = parseFloat(document.getElementById('monto_prestamo').value);
+            const tasa = parseFloat(document.getElementById('tasa_interes').value);
+            const cuotas = parseInt(document.getElementById('numero_cuotas').value);
+
+            if (!clienteId) {
+                e.preventDefault();
+                showNotification('Debe seleccionar un cliente', 'error');
+                return;
+            }
+
+            if (monto < 100) {
+                e.preventDefault();
+                showNotification('El monto mínimo del préstamo es $100', 'error');
+                return;
+            }
+
+            if (tasa <= 0 || tasa > 50) {
+                e.preventDefault();
+                showNotification('La tasa de interés debe estar entre 0.1% y 50%', 'error');
+                return;
+            }
+
+            if (cuotas < 1 || cuotas > 60) {
+                e.preventDefault();
+                showNotification('El número de cuotas debe estar entre 1 y 60', 'error');
+                return;
+            }
+        });
+
+        // FUNCIÓN PARA VERIFICAR PRÉSTAMOS VENCIDOS
+        async function checkOverdueLoans() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                
+                const { data: vencidos, error } = await supabase
+                    .from('creditos')
+                    .select('id, clientes(nombre_completo)')
+                    .eq('estado', 'activo')
+                    .lt('fecha_vencimiento', today);
+
+                if (error) throw error;
+
+                if (vencidos && vencidos.length > 0) {
+                    // Actualizar estado a vencido
+                    const { error: updateError } = await supabase
+                        .from('creditos')
+                        .update({ estado: 'vencido' })
+                        .eq('estado', 'activo')
+                        .lt('fecha_vencimiento', today);
+
+                    if (!updateError) {
+                        loadPrestamos(); // Recargar para mostrar cambios
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error verificando préstamos vencidos:', error);
+            }
+        }
+
+        // VERIFICAR PRÉSTAMOS VENCIDOS AL CARGAR LA PÁGINA
+        setTimeout(checkOverdueLoans, 3000);
+    </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -386,6 +1406,165 @@
             background: #ffcccc;
         }
 
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            background: #f1f5f9;
+            color: #4a5568;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .calculation-section {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .calculation-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calculation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .calculation-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .calculation-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 0.5rem;
+        }
+
+        .calculation-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
         /* LOADING Y ESTADOS */
         .loading {
             display: flex;
@@ -417,6 +1596,7 @@
             margin-bottom: 1rem;
         }
 
+        /* NOTIFICACIONES */
         .notification {
             position: fixed;
             top: 20px;
@@ -446,6 +1626,11 @@
             to { opacity: 1; }
         }
 
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -472,6 +1657,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
             .filters-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
@@ -484,32 +1673,11 @@
             .table {
                 min-width: 800px;
             }
-        }
 
-        /* ERROR DISPLAY */
-        .error-display {
-            background: #fed7d7;
-            border: 1px solid #feb2b2;
-            border-radius: 12px;
-            padding: 1rem;
-            margin: 2rem 0;
-            color: #742a2a;
-        }
-
-        .error-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .debug-info {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-family: monospace;
-            font-size: 0.9rem;
-            color: #4a5568;
+            .modal-content {
+                width: 95%;
+                margin: 1rem;
+            }
         }
     </style>
 </head>
@@ -526,9 +1694,8 @@
                 <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="clientes.html" class="nav-link"><i class="fas fa-users"></i> Clientes</a></li>
                 <li><a href="prestamos.html" class="nav-link active"><i class="fas fa-handshake"></i> Préstamos</a></li>
-                <li><a href="pagos.html" class="nav-link"><i class="fas fa-credit-card"></i> Pagos</a></li>
-                <li><a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes</a></li>
-                <li><a href="notificaciones.html" class="nav-link"><i class="fab fa-whatsapp"></i> WhatsApp</a></li>
+                <li><a href="#" class="nav-link" onclick="proximamente('Pagos')"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="#" class="nav-link" onclick="proximamente('Reportes')"><i class="fas fa-chart-bar"></i> Reportes</a></li>
             </ul>
 
             <div class="navbar-user">
@@ -549,11 +1716,11 @@
                 <p class="page-subtitle">Administra todos los créditos y préstamos del sistema</p>
             </div>
             <div class="page-actions">
-                <button class="btn-secondary" onclick="testConnection()">
-                    <i class="fas fa-database"></i> Probar Conexión
+                <button class="btn-secondary" onclick="adjustCashBalance()">
+                    <i class="fas fa-wallet"></i> Ajustar Caja
                 </button>
-                <button class="btn-secondary" onclick="forceShowTable()">
-                    <i class="fas fa-table"></i> Mostrar Tabla
+                <button class="btn-secondary" onclick="openCalculatorModal()">
+                    <i class="fas fa-calculator"></i> Calculadora
                 </button>
                 <button class="btn-primary" onclick="openAddLoanModal()">
                     <i class="fas fa-plus"></i> Nuevo Préstamo
@@ -579,12 +1746,10 @@
                 <div class="stat-value" id="montoPromedio">$0</div>
                 <div class="stat-label">Promedio por Préstamo</div>
             </div>
-        </div>
-
-        <!-- DEBUG PANEL (solo visible si hay errores) -->
-        <div id="debugPanel" class="error-display" style="display: none;">
-            <div class="error-title">🔍 Información de Debug</div>
-            <div id="debugContent"></div>
+            <div class="stat-card info">
+                <div class="stat-value" id="saldoCaja">$0</div>
+                <div class="stat-label">Saldo en Caja</div>
+            </div>
         </div>
 
         <!-- FILTROS -->
@@ -621,7 +1786,7 @@
             <div class="spinner"></div>
             <div>
                 <h3>Cargando préstamos...</h3>
-                <p>Conectando con la base de datos...</p>
+                <p>Obteniendo datos de Supabase</p>
             </div>
         </div>
 
@@ -683,7 +1848,7 @@
                     <div class="form-group">
                         <label class="form-label" for="monto_prestamo">Monto del Préstamo *</label>
                         <input type="number" id="monto_prestamo" name="monto_prestamo" class="form-input" 
-                               min="50" step="0.01" required oninput="calculateLoan()">
+                               min="100" step="0.01" required oninput="calculateLoan()">
                     </div>
                     
                     <div class="form-group">
@@ -747,1033 +1912,4 @@
                     </div>
                 </div>
                 
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeLoanModal()">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="btn-primary" id="saveButton">
-                        <i class="fas fa-save"></i> Crear Préstamo
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        // VARIABLES GLOBALES
-        let supabase = null;
-        let prestamos = [];
-        let filteredPrestamos = [];
-        let clientes = [];
-        let editingLoanId = null;
-
-        /* ESTILOS PARA MODAL */
-        const modalStyles = `
-            .modal {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 1000;
-                animation: fadeIn 0.3s ease;
-            }
-
-            .modal.show {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .modal-content {
-                background: white;
-                border-radius: 20px;
-                padding: 2rem;
-                width: 90%;
-                max-width: 800px;
-                max-height: 90vh;
-                overflow-y: auto;
-                animation: slideIn 0.3s ease;
-            }
-
-            .modal-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 1.5rem;
-            }
-
-            .modal-title {
-                font-size: 1.5rem;
-                font-weight: 700;
-                color: #2d3748;
-            }
-
-            .btn-close {
-                background: none;
-                border: none;
-                font-size: 1.5rem;
-                color: #718096;
-                cursor: pointer;
-                padding: 4px;
-                border-radius: 50%;
-                transition: all 0.3s ease;
-            }
-
-            .btn-close:hover {
-                background: #f1f5f9;
-                color: #4a5568;
-            }
-
-            .form-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1.5rem;
-                margin-bottom: 2rem;
-            }
-
-            .form-group {
-                margin-bottom: 1.5rem;
-            }
-
-            .form-group.full-width {
-                grid-column: 1 / -1;
-            }
-
-            .form-label {
-                display: block;
-                margin-bottom: 0.5rem;
-                font-weight: 600;
-                color: #4a5568;
-            }
-
-            .form-input, .form-select {
-                width: 100%;
-                padding: 12px 16px;
-                border: 2px solid #e2e8f0;
-                border-radius: 12px;
-                font-size: 1rem;
-                transition: all 0.3s ease;
-            }
-
-            .form-input:focus, .form-select:focus {
-                outline: none;
-                border-color: #667eea;
-                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            }
-
-            .form-textarea {
-                width: 100%;
-                padding: 12px 16px;
-                border: 2px solid #e2e8f0;
-                border-radius: 12px;
-                font-size: 1rem;
-                resize: vertical;
-                min-height: 80px;
-                font-family: inherit;
-            }
-
-            .calculation-section {
-                background: #f8fafc;
-                border: 2px solid #e2e8f0;
-                border-radius: 15px;
-                padding: 1.5rem;
-                margin: 1.5rem 0;
-            }
-
-            .calculation-title {
-                font-size: 1.1rem;
-                font-weight: 600;
-                color: #4a5568;
-                margin-bottom: 1rem;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .calculation-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 1rem;
-            }
-
-            .calculation-item {
-                background: white;
-                padding: 1rem;
-                border-radius: 10px;
-                border: 1px solid #e2e8f0;
-            }
-
-            .calculation-label {
-                font-size: 0.9rem;
-                color: #718096;
-                margin-bottom: 0.5rem;
-            }
-
-            .calculation-value {
-                font-size: 1.2rem;
-                font-weight: 700;
-                color: #2d3748;
-            }
-
-            .modal-actions {
-                display: flex;
-                gap: 1rem;
-                justify-content: flex-end;
-                margin-top: 2rem;
-                padding-top: 1.5rem;
-                border-top: 1px solid #e2e8f0;
-            }
-
-            @keyframes slideIn {
-                from { transform: translateY(-50px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-            }
-
-            @media (max-width: 768px) {
-                .form-grid {
-                    grid-template-columns: 1fr;
-                }
-                
-                .modal-content {
-                    width: 95%;
-                    margin: 1rem;
-                }
-            }
-        `;
-
-        // Agregar estilos al head
-        const styleSheet = document.createElement('style');
-        styleSheet.textContent = modalStyles;
-        document.head.appendChild(styleSheet);
-
-        // FUNCIONES DE DEBUG
-        function addDebugInfo(message, data = null) {
-            console.log('DEBUG:', message, data);
-            const debugPanel = document.getElementById('debugPanel');
-            const debugContent = document.getElementById('debugContent');
-            
-            debugPanel.style.display = 'block';
-            debugContent.innerHTML += `
-                <div style="margin-bottom: 0.5rem;">
-                    <strong>${new Date().toLocaleTimeString()}:</strong> ${message}
-                    ${data ? `<div class="debug-info">${JSON.stringify(data, null, 2)}</div>` : ''}
-                </div>
-            `;
-        }
-
-        function clearDebugInfo() {
-            document.getElementById('debugPanel').style.display = 'none';
-            document.getElementById('debugContent').innerHTML = '';
-        }
-
-        // INICIALIZACIÓN
-        document.addEventListener('DOMContentLoaded', function() {
-            clearDebugInfo();
-            addDebugInfo('🚀 Aplicación iniciando...');
-
-            // Verificar autenticación
-            if (!localStorage.getItem('userLoggedIn')) {
-                addDebugInfo('❌ Usuario no autenticado, redirigiendo...');
-                window.location.href = './';
-                return;
-            }
-
-            // Mostrar usuario
-            const username = localStorage.getItem('username') || 'Usuario';
-            document.getElementById('username').textContent = username;
-            addDebugInfo(`👤 Usuario logueado: ${username}`);
-
-            // Inicializar Supabase
-            initSupabase();
-        });
-
-        // CONFIGURAR SUPABASE
-        function initSupabase() {
-            const url = localStorage.getItem('supabaseUrl');
-            const key = localStorage.getItem('supabaseKey');
-            
-            addDebugInfo('🔑 Verificando credenciales de Supabase...');
-            addDebugInfo(`URL: ${url ? 'Configurada ✅' : 'No configurada ❌'}`);
-            addDebugInfo(`Key: ${key ? 'Configurada ✅' : 'No configurada ❌'}`);
-            
-            if (!url || !key) {
-                addDebugInfo('❌ Credenciales de Supabase no configuradas');
-                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
-                setTimeout(() => {
-                    window.location.href = './';
-                }, 2000);
-                return;
-            }
-            
-            if (typeof window.supabase === 'undefined') {
-                addDebugInfo('❌ Librería de Supabase no disponible');
-                showNotification('Librería Supabase no disponible. Recarga la página.', 'error');
-                return;
-            }
-            
-            try {
-                supabase = window.supabase.createClient(url, key);
-                addDebugInfo('✅ Cliente de Supabase creado exitosamente');
-                loadData();
-            } catch (error) {
-                addDebugInfo('❌ Error creando cliente de Supabase', error);
-                showNotification('Error configurando Supabase: ' + error.message, 'error');
-            }
-        }
-
-        // PROBAR CONEXIÓN
-        async function testConnection() {
-            addDebugInfo('🧪 Probando conexión con Supabase...');
-            
-            try {
-                // Probar conexión básica
-                const { data, error } = await supabase
-                    .from('creditos')
-                    .select('count(*)', { count: 'exact', head: true });
-
-                if (error) {
-                    addDebugInfo('❌ Error en la conexión', error);
-                    showNotification('Error de conexión: ' + error.message, 'error');
-                } else {
-                    addDebugInfo('✅ Conexión exitosa', data);
-                    showNotification('Conexión exitosa con la base de datos', 'success');
-                }
-            } catch (error) {
-                addDebugInfo('❌ Error crítico de conexión', error);
-                showNotification('Error crítico: ' + error.message, 'error');
-            }
-        }
-
-        // CARGAR DATOS INICIALES
-        async function loadData() {
-            addDebugInfo('📊 Iniciando carga de datos...');
-            
-            try {
-                await Promise.all([
-                    loadClientes(),
-                    loadPrestamos()
-                ]);
-                addDebugInfo('✅ Todos los datos cargados exitosamente');
-            } catch (error) {
-                addDebugInfo('❌ Error cargando datos', error);
-                console.error('Error cargando datos:', error);
-                showNotification('Error cargando datos: ' + error.message, 'error');
-            }
-        }
-
-        // CARGAR CLIENTES
-        async function loadClientes() {
-            addDebugInfo('👥 Cargando clientes...');
-            
-            try {
-                const { data, error } = await supabase
-                    .from('clientes')
-                    .select('id, nombre_completo, cedula')
-                    .order('nombre_completo');
-
-                if (error) {
-                    addDebugInfo('❌ Error cargando clientes', error);
-                    throw error;
-                }
-
-                clientes = data || [];
-                addDebugInfo(`✅ Clientes cargados: ${clientes.length} registros`, clientes);
-
-                // Llenar select de clientes en el modal
-                const clienteSelect = document.getElementById('cliente_id');
-                if (clienteSelect) {
-                    clienteSelect.innerHTML = '<option value="">Seleccionar cliente...</option>';
-                    
-                    clientes.forEach(cliente => {
-                        const option = document.createElement('option');
-                        option.value = cliente.id;
-                        option.textContent = `${cliente.nombre_completo} (CI: ${cliente.cedula})`;
-                        clienteSelect.appendChild(option);
-                    });
-                }
-
-            } catch (error) {
-                addDebugInfo('❌ Error crítico cargando clientes', error);
-                console.error('Error cargando clientes:', error);
-                showNotification('Error cargando clientes: ' + error.message, 'error');
-                clientes = [];
-            }
-        }
-
-        // CARGAR PRÉSTAMOS CON DEBUG MEJORADO
-        async function loadPrestamos() {
-            addDebugInfo('💰 Iniciando carga de préstamos...');
-            
-            try {
-                document.getElementById('loadingPrestamos').style.display = 'flex';
-                document.getElementById('prestamosContainer').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'none';
-
-                // Primero, probar una consulta simple
-                addDebugInfo('🔍 Probando consulta simple a la tabla creditos...');
-                const { data: testData, error: testError } = await supabase
-                    .from('creditos')
-                    .select('*')
-                    .limit(1);
-
-                if (testError) {
-                    addDebugInfo('❌ Error en consulta simple', testError);
-                    throw testError;
-                }
-
-                addDebugInfo('✅ Consulta simple exitosa', testData);
-
-                // Ahora intentar la consulta completa
-                addDebugInfo('🔍 Ejecutando consulta completa con JOIN...');
-                const { data, error } = await supabase
-                    .from('creditos')
-                    .select(`
-                        *,
-                        clientes (
-                            id,
-                            nombre_completo,
-                            cedula
-                        )
-                    `)
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    addDebugInfo('❌ Error en consulta con JOIN', error);
-                    
-                    // Intentar sin JOIN como respaldo
-                    addDebugInfo('🔄 Intentando consulta sin JOIN...');
-                    const { data: simpleData, error: simpleError } = await supabase
-                        .from('creditos')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-
-                    if (simpleError) {
-                        addDebugInfo('❌ Error en consulta simple de respaldo', simpleError);
-                        throw simpleError;
-                    }
-
-                    addDebugInfo('✅ Consulta simple de respaldo exitosa', simpleData);
-                    
-                    // Enriquecer datos manualmente
-                    for (let prestamo of simpleData) {
-                        const cliente = clientes.find(c => c.id === prestamo.cliente_id);
-                        prestamo.clientes = cliente || null;
-                    }
-                    
-                    prestamos = simpleData;
-                } else {
-                    addDebugInfo('✅ Consulta con JOIN exitosa', data);
-                    prestamos = data || [];
-                }
-
-                filteredPrestamos = [...prestamos];
-                addDebugInfo(`📊 Préstamos procesados: ${prestamos.length} registros`);
-                
-                updateStats();
-                renderPrestamos();
-                
-                document.getElementById('loadingPrestamos').style.display = 'none';
-                
-                if (prestamos.length === 0) {
-                    addDebugInfo('📭 No hay préstamos, mostrando estado vacío');
-                    document.getElementById('emptyState').style.display = 'block';
-                    document.getElementById('prestamosContainer').style.display = 'none';
-                } else {
-                    addDebugInfo('📋 Mostrando tabla de préstamos');
-                    document.getElementById('prestamosContainer').style.display = 'block';
-                    document.getElementById('emptyState').style.display = 'none';
-                }
-
-                addDebugInfo(`🎯 Estado final: Container=${document.getElementById('prestamosContainer').style.display}, Empty=${document.getElementById('emptyState').style.display}`);
-
-            } catch (error) {
-                addDebugInfo('❌ Error crítico cargando préstamos', error);
-                document.getElementById('loadingPrestamos').style.display = 'none';
-                console.error('Error cargando préstamos:', error);
-                showNotification('Error cargando préstamos: ' + error.message, 'error');
-                
-                // Mostrar estado de error con información útil
-                document.getElementById('emptyState').innerHTML = `
-                    <i class="fas fa-exclamation-triangle empty-icon" style="color: #f56565;"></i>
-                    <h3>Error cargando préstamos</h3>
-                    <p>Revisa la información de debug arriba para más detalles</p>
-                    <button class="btn-primary" onclick="loadPrestamos()" style="margin-top: 1rem;">
-                        <i class="fas fa-redo"></i> Reintentar
-                    </button>
-                `;
-                document.getElementById('emptyState').style.display = 'block';
-            }
-        }
-
-        // ACTUALIZAR ESTADÍSTICAS
-        function updateStats() {
-            addDebugInfo('📊 Actualizando estadísticas...');
-            
-            const total = prestamos.length;
-            const activos = prestamos.filter(p => p.estado === 'activo').length;
-            const montoTotal = prestamos
-                .filter(p => p.estado === 'activo')
-                .reduce((sum, p) => sum + (parseFloat(p.monto_prestamo) || 0), 0);
-            const promedio = activos > 0 ? montoTotal / activos : 0;
-
-            document.getElementById('totalPrestamos').textContent = total;
-            document.getElementById('prestamosActivos').textContent = activos;
-            document.getElementById('montoTotal').textContent = formatCurrency(montoTotal);
-            document.getElementById('montoPromedio').textContent = formatCurrency(promedio);
-            
-            addDebugInfo(`📈 Estadísticas: Total=${total}, Activos=${activos}, Monto=${montoTotal}, Promedio=${promedio}`);
-        }
-
-        // RENDERIZAR TABLA
-        function renderPrestamos() {
-            addDebugInfo('🎨 Renderizando tabla de préstamos...');
-            
-            const tbody = document.getElementById('prestamosTableBody');
-            tbody.innerHTML = '';
-
-            document.getElementById('prestamosCount').textContent = 
-                `${filteredPrestamos.length} préstamo${filteredPrestamos.length !== 1 ? 's' : ''}`;
-
-            filteredPrestamos.forEach((prestamo, index) => {
-                addDebugInfo(`🔍 Procesando préstamo ${index + 1}:`, prestamo);
-                
-                const row = document.createElement('tr');
-                
-                // Manejar fecha de forma segura
-                let fechaInicio = 'Fecha inválida';
-                try {
-                    if (prestamo.fecha_inicio) {
-                        fechaInicio = new Date(prestamo.fecha_inicio).toLocaleDateString('es-EC');
-                    }
-                } catch (error) {
-                    addDebugInfo(`⚠️ Error formateando fecha para préstamo ${prestamo.id}:`, error);
-                }
-                
-                const cliente = prestamo.clientes;
-                const clienteNombre = cliente?.nombre_completo || 'Cliente no encontrado';
-                const clienteCedula = cliente?.cedula || 'N/A';
-                
-                row.innerHTML = `
-                    <td>
-                        <div>
-                            <div style="font-weight: 600;">${clienteNombre}</div>
-                            <div style="font-size: 0.85rem; color: #718096;">CI: ${clienteCedula}</div>
-                        </div>
-                    </td>
-                    <td>${formatCurrency(prestamo.monto_prestamo)}</td>
-                    <td>${prestamo.tasa_interes}%</td>
-                    <td>${prestamo.numero_cuotas}</td>
-                    <td>
-                        <span style="text-transform: capitalize;">${prestamo.frecuencia_pago}</span>
-                    </td>
-                    <td>
-                        <span class="status-badge status-${prestamo.estado}">
-                            ${prestamo.estado}
-                        </span>
-                    </td>
-                    <td>${fechaInicio}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-action btn-view" onclick="viewLoanDetail('${prestamo.id}')" title="Ver detalle">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            ${prestamo.estado === 'activo' ? `
-                                <button class="btn-action btn-edit" onclick="editLoan('${prestamo.id}')" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn-action btn-cancel" onclick="cancelLoan('${prestamo.id}', '${clienteNombre}')" title="Cancelar">
-                                    <i class="fas fa-ban"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-            
-            addDebugInfo(`✅ Tabla renderizada con ${filteredPrestamos.length} filas`);
-        }
-
-        // FILTRAR PRÉSTAMOS
-        function filterPrestamos() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const estadoFilter = document.getElementById('estadoFilter').value;
-            const frecuenciaFilter = document.getElementById('frecuenciaFilter').value;
-            
-            filteredPrestamos = prestamos.filter(prestamo => {
-                const cliente = prestamo.clientes;
-                const matchesSearch = !searchTerm || 
-                    (cliente?.nombre_completo?.toLowerCase().includes(searchTerm)) ||
-                    (cliente?.cedula?.includes(searchTerm));
-                
-                const matchesEstado = !estadoFilter || prestamo.estado === estadoFilter;
-                const matchesFrecuencia = !frecuenciaFilter || prestamo.frecuencia_pago === frecuenciaFilter;
-                
-                return matchesSearch && matchesEstado && matchesFrecuencia;
-            });
-            
-            renderPrestamos();
-        }
-
-        // FUNCIÓN PARA FORZAR MOSTRAR TABLA
-        function forceShowTable() {
-            addDebugInfo('🔧 Forzando mostrar tabla...');
-            document.getElementById('loadingPrestamos').style.display = 'none';
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('prestamosContainer').style.display = 'block';
-            addDebugInfo('✅ Tabla forzada a mostrar');
-        }
-
-        // FUNCIONES DE MODAL Y ACCIONES
-        function openAddLoanModal() {
-            addDebugInfo('➕ Abriendo modal de nuevo préstamo');
-            
-            if (clientes.length === 0) {
-                showNotification('No hay clientes registrados. Registra un cliente primero.', 'error');
-                return;
-            }
-
-            editingLoanId = null;
-            document.getElementById('modalTitle').textContent = 'Nuevo Préstamo';
-            document.getElementById('saveButton').innerHTML = '<i class="fas fa-save"></i> Crear Préstamo';
-            document.getElementById('loanForm').reset();
-            
-            // Establecer fecha de hoy por defecto
-            document.getElementById('fecha_inicio').value = new Date().toISOString().split('T')[0];
-            
-            clearCalculations();
-            document.getElementById('loanModal').classList.add('show');
-        }
-
-        // CERRAR MODAL PRÉSTAMO
-        function closeLoanModal() {
-            document.getElementById('loanModal').classList.remove('show');
-            document.getElementById('loanForm').reset();
-            editingLoanId = null;
-            clearCalculations();
-        }
-
-        // CALCULAR PRÉSTAMO
-        function calculateLoan() {
-            const monto = parseFloat(document.getElementById('monto_prestamo').value) || 0;
-            const tasa = parseFloat(document.getElementById('tasa_interes').value) || 0;
-            const cuotas = parseInt(document.getElementById('numero_cuotas').value) || 0;
-            const frecuencia = document.getElementById('frecuencia_pago').value;
-            const fechaInicio = document.getElementById('fecha_inicio').value;
-
-            if (monto > 0 && tasa > 0 && cuotas > 0 && frecuencia && fechaInicio) {
-                // Calcular interés simple
-                const tasaDecimal = tasa / 100;
-                const montoTotal = monto * (1 + tasaDecimal);
-                const montoCuota = montoTotal / cuotas;
-
-                // Calcular fecha de vencimiento
-                const fechaVencimiento = calculateEndDate(new Date(fechaInicio), cuotas, frecuencia);
-
-                // Actualizar UI
-                document.getElementById('calc_monto_prestamo').textContent = formatCurrency(monto);
-                document.getElementById('calc_monto_total').textContent = formatCurrency(montoTotal);
-                document.getElementById('calc_monto_cuota').textContent = formatCurrency(montoCuota);
-                document.getElementById('calc_fecha_vencimiento').textContent = fechaVencimiento.toLocaleDateString('es-EC');
-            } else {
-                clearCalculations();
-            }
-        }
-
-        // LIMPIAR CÁLCULOS
-        function clearCalculations() {
-            document.getElementById('calc_monto_prestamo').textContent = '$0.00';
-            document.getElementById('calc_monto_total').textContent = '$0.00';
-            document.getElementById('calc_monto_cuota').textContent = '$0.00';
-            document.getElementById('calc_fecha_vencimiento').textContent = '--';
-        }
-
-        // CALCULAR FECHA DE VENCIMIENTO
-        function calculateEndDate(startDate, cuotas, frecuencia) {
-            const date = new Date(startDate);
-            
-            switch (frecuencia) {
-                case 'diario':
-                    date.setDate(date.getDate() + cuotas);
-                    break;
-                case 'semanal':
-                    date.setDate(date.getDate() + (cuotas * 7));
-                    break;
-                case 'quincenal':
-                    date.setDate(date.getDate() + (cuotas * 15));
-                    break;
-                case 'mensual':
-                    date.setMonth(date.getMonth() + cuotas);
-                    break;
-            }
-            
-            return date;
-        }
-
-        // GUARDAR PRÉSTAMO
-        async function saveLoan(event) {
-            event.preventDefault();
-            addDebugInfo('💾 Iniciando proceso de guardar préstamo...');
-            
-            const form = event.target;
-            const formData = new FormData(form);
-            
-            const monto = parseFloat(formData.get('monto_prestamo'));
-            const tasa = parseFloat(formData.get('tasa_interes'));
-            const cuotas = parseInt(formData.get('numero_cuotas'));
-            const frecuencia = formData.get('frecuencia_pago');
-            const fechaInicio = new Date(formData.get('fecha_inicio'));
-
-            // Validaciones básicas
-            if (monto < 50) {
-                showNotification('El monto mínimo del préstamo es $50', 'error');
-                return;
-            }
-
-            if (tasa <= 0 || tasa > 50) {
-                showNotification('La tasa de interés debe estar entre 0.1% y 50%', 'error');
-                return;
-            }
-
-            if (cuotas < 1 || cuotas > 60) {
-                showNotification('El número de cuotas debe estar entre 1 y 60', 'error');
-                return;
-            }
-
-            // Calcular valores
-            const tasaDecimal = tasa / 100;
-            const montoTotal = monto * (1 + tasaDecimal);
-            const montoCuota = montoTotal / cuotas;
-            const fechaVencimiento = calculateEndDate(fechaInicio, cuotas, frecuencia);
-
-            const loanData = {
-                cliente_id: formData.get('cliente_id'),
-                monto_prestamo: monto,
-                tasa_interes: tasa,
-                numero_cuotas: cuotas,
-                frecuencia_pago: frecuencia,
-                fecha_inicio: formData.get('fecha_inicio'),
-                fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0],
-                monto_total: montoTotal,
-                monto_cuota: montoCuota,
-                estado: 'activo',
-                observaciones: formData.get('observaciones') || null
-            };
-
-            addDebugInfo('📝 Datos del préstamo a guardar:', loanData);
-
-            try {
-                document.getElementById('saveButton').disabled = true;
-                document.getElementById('saveButton').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-                let result;
-                
-                if (editingLoanId) {
-                    // Actualizar préstamo existente
-                    addDebugInfo('✏️ Actualizando préstamo existente...');
-                    result = await supabase
-                        .from('creditos')
-                        .update(loanData)
-                        .eq('id', editingLoanId)
-                        .select();
-                } else {
-                    // Crear nuevo préstamo
-                    addDebugInfo('➕ Creando nuevo préstamo...');
-                    result = await supabase
-                        .from('creditos')
-                        .insert([loanData])
-                        .select();
-                }
-
-                if (result.error) {
-                    addDebugInfo('❌ Error guardando en Supabase:', result.error);
-                    throw result.error;
-                }
-
-                addDebugInfo('✅ Préstamo guardado exitosamente:', result.data);
-
-                showNotification(
-                    editingLoanId ? 'Préstamo actualizado exitosamente' : 'Préstamo creado exitosamente',
-                    'success'
-                );
-
-                closeLoanModal();
-                
-                // Recargar datos para mostrar el nuevo préstamo
-                await loadPrestamos();
-
-            } catch (error) {
-                addDebugInfo('❌ Error crítico guardando préstamo:', error);
-                console.error('Error guardando préstamo:', error);
-                showNotification('Error guardando préstamo: ' + error.message, 'error');
-            } finally {
-                document.getElementById('saveButton').disabled = false;
-                document.getElementById('saveButton').innerHTML = editingLoanId ? 
-                    '<i class="fas fa-save"></i> Actualizar Préstamo' : 
-                    '<i class="fas fa-save"></i> Crear Préstamo';
-            }
-        }
-
-        function editLoan(loanId) {
-            addDebugInfo(`✏️ Editando préstamo: ${loanId}`);
-            const prestamo = prestamos.find(p => p.id === loanId);
-            if (prestamo) {
-                showNotification(`Editando préstamo de ${prestamo.clientes?.nombre_completo || 'Cliente desconocido'}`, 'success');
-            } else {
-                showNotification('Préstamo no encontrado', 'error');
-            }
-        }
-
-        function cancelLoan(loanId, clientName) {
-            addDebugInfo(`❌ Cancelando préstamo: ${loanId} de ${clientName}`);
-            
-            if (!confirm(`¿Estás seguro de que quieres cancelar el préstamo de ${clientName}?\n\nEsta acción marcará el préstamo como cancelado.`)) {
-                return;
-            }
-
-            // Aquí iría la lógica real de cancelación
-            showNotification(`Función de cancelar préstamo de ${clientName} está lista. Solo falta implementar la actualización en BD.`, 'success');
-        }
-
-        function viewLoanDetail(loanId) {
-            const prestamo = prestamos.find(p => p.id === loanId);
-            if (!prestamo) {
-                showNotification('Préstamo no encontrado', 'error');
-                return;
-            }
-            
-            addDebugInfo('👁️ Viendo detalle del préstamo:', prestamo);
-            
-            // Crear vista de detalle simple
-            const cliente = prestamo.clientes;
-            const detalle = `
-📋 DETALLE DEL PRÉSTAMO
-
-👤 Cliente: ${cliente?.nombre_completo || 'N/A'}
-📝 Cédula: ${cliente?.cedula || 'N/A'}
-💰 Monto: ${formatCurrency(prestamo.monto_prestamo)}
-📈 Tasa: ${prestamo.tasa_interes}%
-🔄 Cuotas: ${prestamo.numero_cuotas}
-📅 Frecuencia: ${prestamo.frecuencia_pago}
-📊 Estado: ${prestamo.estado}
-🗓️ Inicio: ${new Date(prestamo.fecha_inicio).toLocaleDateString('es-EC')}
-🎯 Vencimiento: ${new Date(prestamo.fecha_vencimiento).toLocaleDateString('es-EC')}
-💵 Total a pagar: ${formatCurrency(prestamo.monto_total)}
-💳 Cuota: ${formatCurrency(prestamo.monto_cuota)}
-📝 Observaciones: ${prestamo.observaciones || 'Ninguna'}
-            `;
-            
-            alert(detalle);
-        }
-
-        // FORMATEAR MONEDA
-        function formatCurrency(amount) {
-            try {
-                return new Intl.NumberFormat('es-EC', {
-                    style: 'currency',
-                    currency: 'USD'
-                }).format(amount || 0);
-            } catch (error) {
-                addDebugInfo('⚠️ Error formateando moneda:', error);
-                return `${(amount || 0).toFixed(2)}`;
-            }
-        }
-
-        // MOSTRAR NOTIFICACIÓN
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
-                ${message}
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 4000);
-        }
-
-        // FUNCIONES DE NAVEGACIÓN
-        function logout() {
-            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-                localStorage.removeItem('userLoggedIn');
-                localStorage.removeItem('username');
-                localStorage.removeItem('loginTime');
-                window.location.href = './';
-            }
-        }
-
-        // EVENTOS DE TECLADO
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                clearDebugInfo();
-                closeLoanModal();
-            }
-            
-            // Ctrl + D = Toggle debug panel
-            if (event.ctrlKey && event.key === 'd') {
-                event.preventDefault();
-                const debugPanel = document.getElementById('debugPanel');
-                debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-            }
-            
-            // Ctrl + R = Reload data
-            if (event.ctrlKey && event.key === 'r') {
-                event.preventDefault();
-                clearDebugInfo();
-                loadData();
-            }
-
-            // Ctrl + N = Nuevo préstamo
-            if (event.ctrlKey && event.key === 'n') {
-                event.preventDefault();
-                openAddLoanModal();
-            }
-        });
-
-        // CERRAR MODALES CLICKEANDO FUERA
-        document.getElementById('loanModal').addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeLoanModal();
-            }
-        });
-
-        // VALIDACIÓN DE CAMPOS NUMÉRICOS
-        document.addEventListener('DOMContentLoaded', function() {
-            // Establecer fecha por defecto cuando el DOM esté listo
-            setTimeout(() => {
-                const fechaInput = document.getElementById('fecha_inicio');
-                if (fechaInput && !fechaInput.value) {
-                    fechaInput.value = new Date().toISOString().split('T')[0];
-                }
-            }, 1000);
-        });
-
-        // VALIDACIONES EN TIEMPO REAL
-        function setupFieldValidations() {
-            const montoInput = document.getElementById('monto_prestamo');
-            const tasaInput = document.getElementById('tasa_interes');
-            const cuotasInput = document.getElementById('numero_cuotas');
-
-            if (montoInput) {
-                montoInput.addEventListener('input', function(e) {
-                    if (parseFloat(e.target.value) < 0) e.target.value = '';
-                    calculateLoan();
-                });
-            }
-
-            if (tasaInput) {
-                tasaInput.addEventListener('input', function(e) {
-                    if (parseFloat(e.target.value) < 0 || parseFloat(e.target.value) > 50) {
-                        if (parseFloat(e.target.value) > 50) e.target.value = 50;
-                        if (parseFloat(e.target.value) < 0) e.target.value = '';
-                    }
-                    calculateLoan();
-                });
-            }
-
-            if (cuotasInput) {
-                cuotasInput.addEventListener('input', function(e) {
-                    if (parseInt(e.target.value) < 1 || parseInt(e.target.value) > 60) {
-                        if (parseInt(e.target.value) > 60) e.target.value = 60;
-                        if (parseInt(e.target.value) < 1) e.target.value = '';
-                    }
-                    calculateLoan();
-                });
-            }
-        }
-
-        // Configurar validaciones después de que se cargue todo
-        setTimeout(setupFieldValidations, 2000);
-
-        // AUTO-REFRESH CADA 2 MINUTOS
-        setInterval(() => {
-            addDebugInfo('🔄 Auto-refresh ejecutándose...');
-            loadPrestamos();
-        }, 120000);
-
-        // VERIFICAR CONFIGURACIÓN AL INICIO
-        function checkConfiguration() {
-            addDebugInfo('⚙️ Verificando configuración del sistema...');
-            
-            const requiredItems = [
-                'supabaseUrl',
-                'supabaseKey',
-                'userLoggedIn',
-                'username'
-            ];
-            
-            const missing = requiredItems.filter(item => !localStorage.getItem(item));
-            
-            if (missing.length > 0) {
-                addDebugInfo('❌ Configuración incompleta:', missing);
-                return false;
-            }
-            
-            addDebugInfo('✅ Configuración completa');
-            return true;
-        }
-
-        // FUNCIÓN DE DIAGNÓSTICO COMPLETO
-        async function runDiagnostics() {
-            addDebugInfo('🔧 Ejecutando diagnóstico completo...');
-            
-            // 1. Verificar configuración
-            checkConfiguration();
-            
-            // 2. Verificar conexión a internet
-            try {
-                await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors' });
-                addDebugInfo('✅ Conexión a internet activa');
-            } catch (error) {
-                addDebugInfo('❌ Sin conexión a internet', error);
-            }
-            
-            // 3. Verificar Supabase
-            if (supabase) {
-                try {
-                    const { data, error } = await supabase
-                        .from('creditos')
-                        .select('count(*)', { count: 'exact', head: true });
-                    
-                    if (error) {
-                        addDebugInfo('❌ Error conectando con Supabase', error);
-                    } else {
-                        addDebugInfo('✅ Supabase conectado correctamente');
-                    }
-                } catch (error) {
-                    addDebugInfo('❌ Error crítico con Supabase', error);
-                }
-            } else {
-                addDebugInfo('❌ Cliente de Supabase no inicializado');
-            }
-            
-            // 4. Verificar estructura de datos
-            if (prestamos.length > 0) {
-                const sampleLoan = prestamos[0];
-                const requiredFields = ['id', 'cliente_id', 'monto_prestamo', 'estado'];
-                const missingFields = requiredFields.filter(field => !(field in sampleLoan));
-                
-                if (missingFields.length > 0) {
-                    addDebugInfo('⚠️ Campos faltantes en préstamos:', missingFields);
-                } else {
-                    addDebugInfo('✅ Estructura de datos de préstamos correcta');
-                }
-            }
-            
-            addDebugInfo('🏁 Diagnóstico completo finalizado');
-        }
-
-        // Ejecutar diagnóstico después de 5 segundos
-        setTimeout(runDiagnostics, 5000);
-    </script>
-</body>
-</html>
+                <div class="modal-actions
