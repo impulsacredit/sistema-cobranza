@@ -849,11 +849,20 @@
                         <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-input" required onchange="calculateLoan()">
                     </div>
                     
-                    <div class="form-group full-width">
-                        <label class="form-label" for="observaciones">Observaciones</label>
-                        <textarea id="observaciones" name="observaciones" class="form-textarea" 
-                                  placeholder="Observaciones adicionales..."></textarea>
-                    </div>
+                 <div class="form-group">
+    <label class="form-label" for="monto_seguro">Monto del Seguro</label>
+    <input type="number" id="monto_seguro" name="monto_seguro" class="form-input" 
+           min="0" step="0.01" placeholder="0.00" oninput="calculateLoan()">
+    <small style="color: #718096; font-size: 0.85rem; margin-top: 0.25rem; display: block;">
+        💡 Monto que se cobra como seguro (no afecta el monto del préstamo)
+    </small>
+</div>
+
+<div class="form-group full-width">
+    <label class="form-label" for="observaciones">Observaciones</label>
+    <textarea id="observaciones" name="observaciones" class="form-textarea" 
+              placeholder="Observaciones adicionales..."></textarea>
+</div>
                 </div>
 
                 <!-- SECCIÓN DE CÁLCULOS -->
