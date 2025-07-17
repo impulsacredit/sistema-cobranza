@@ -774,6 +774,7 @@
                         <th>Tasa</th>
                         <th>Cuotas</th>
                         <th>Frecuencia</th>
+                        <th>Seguro</th>  
                         <th>Estado</th>
                         <th>Fecha Inicio</th>
                         <th>Acciones</th>
@@ -887,6 +888,10 @@
                         <div class="calculation-item">
                             <div class="calculation-label">Fecha de Vencimiento</div>
                             <div class="calculation-value" id="calc_fecha_vencimiento">--</div>
+                        </div>
+                        <div class="calculation-item">
+                           <div class="calculation-label">💰 Seguro a Cobrar</div>
+                          <div class="calculation-value" id="calc_monto_seguro" style="color: #667eea; font-weight: 700;">$0.00</div>
                         </div>
                     </div>
                 </div>
@@ -1158,7 +1163,10 @@
                     <td>${prestamo.tasa_interes}%</td>
                     <td>${prestamo.numero_cuotas}</td>
                     <td>
-                        <span style="text-transform: capitalize;">${prestamo.frecuencia_pago}</span>
+                     <span style="text-transform: capitalize;">${prestamo.frecuencia_pago}</span>
+                     </td>
+                    <td style="font-weight: 600; color: ${(prestamo.monto_seguro || 0) > 0 ? '#48bb78' : '#718096'};">
+                    ${formatCurrency(prestamo.monto_seguro || 0)}
                     </td>
                     <td>
                         <span class="status-badge status-${prestamo.estado}">
@@ -1274,6 +1282,45 @@
             } else {
                 clearCalculations();
             }
+            // CALCULAR PRÉSTAMO
+function calculateLoan() {
+    const monto = parseFloat(document.getElementById('monto_prestamo').value) || 0;
+    const tasa = parseFloat(document.getElementById('tasa_interes').value) || 0;
+    const cuotas = parseInt(document.getElementById('numero_cuotas').value) || 0;
+    const frecuencia = document.getElementById('frecuencia_pago').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+
+    if (monto > 0 && tasa > 0 && cuotas > 0 && frecuencia && fechaInicio) {
+        // Calcular interés simple
+        const tasaDecimal = tasa / 100;
+        const montoTotal = monto * (1 + tasaDecimal);
+        const montoCuota = montoTotal / cuotas;
+
+        // Calcular fecha de vencimiento
+        const fechaVencimiento = calculateEndDate(new Date(fechaInicio), cuotas, frecuencia);
+
+        // Actualizar UI
+        document.getElementById('calc_monto_prestamo').textContent = formatCurrency(monto);
+        document.getElementById('calc_monto_total').textContent = formatCurrency(montoTotal);
+        document.getElementById('calc_monto_cuota').textContent = formatCurrency(montoCuota);
+        document.getElementById('calc_fecha_vencimiento').textContent = fechaVencimiento.toLocaleDateString('es-EC');
+    } else {
+        clearCalculations();
+    }
+    
+    // Calcular y mostrar seguro
+    const montoSeguro = parseFloat(document.getElementById('monto_seguro').value) || 0;
+    document.getElementById('calc_monto_seguro').textContent = formatCurrency(montoSeguro);
+
+    // Cambiar color según si hay seguro
+    const seguroElement = document.getElementById('calc_monto_seguro');
+    if (montoSeguro > 0) {
+        seguroElement.style.color = '#48bb78';
+        seguroElement.style.fontWeight = '700';
+    } else {
+        seguroElement.style.color = '#718096';
+        seguroElement.style.fontWeight = '500';
+    }
         }
 
         // LIMPIAR CÁLCULOS
@@ -1335,6 +1382,7 @@
                 fecha_vencimiento: fechaVencimiento.toISOString().split('T')[0],
                 monto_total: montoTotal,
                 monto_cuota: montoCuota,
+                monto_seguro: parseFloat(formData.get('monto_seguro')) || 0,  
                 estado: 'activo',
                 observaciones: formData.get('observaciones') || null
             };
@@ -1361,6 +1409,7 @@
                     // Si es nuevo préstamo, generar cuotas
                     if (result.data && result.data[0]) {
                         await generateCuotas(result.data[0]);
+                        await registrarSeguroCobrado(result.data[0], loanData.monto_seguro); 
                     }
                 }
 
@@ -1789,6 +1838,36 @@
 
         // VERIFICAR PRÉSTAMOS VENCIDOS AL CARGAR LA PÁGINA
         setTimeout(checkOverdueLoans, 3000);
+            // ============================================
+        // SISTEMA DE SEGUROS - PRÉSTAMOS
+        // ============================================
+        
+        // REGISTRAR SEGURO COBRADO
+        async function registrarSeguroCobrado(prestamo, montoSeguro) {
+            try {
+                if (montoSeguro <= 0) return; // No registrar si no hay seguro
+                
+                const cliente = clientes.find(c => c.id === prestamo.cliente_id);
+                
+                const { error } = await supabase
+                    .from('seguros_cobrados')
+                    .insert([{
+                        credito_id: prestamo.id,
+                        cliente_nombre: cliente?.nombre_completo || 'Cliente no encontrado',
+                        monto_seguro: montoSeguro,
+                        fecha_cobro: new Date().toISOString().split('T')[0],
+                        observaciones: `Seguro cobrado para préstamo de ${formatCurrency(prestamo.monto_prestamo)}`
+                    }]);
+
+                if (error) throw error;
+                
+                console.log('✅ Seguro registrado exitosamente:', formatCurrency(montoSeguro));
+
+            } catch (error) {
+                console.error('❌ Error registrando seguro:', error);
+                showNotification('Préstamo creado, pero error registrando seguro', 'error');
+            }
+        }
     </script>
 </body>
 </html>
