@@ -1195,6 +1195,51 @@ async function loadMainStats() {
         const style = document.createElement('style');
         style.textContent = slideInCSS;
         document.head.appendChild(style);
+        // ============================================
+        // SISTEMA DE SEGUROS - CÓDIGO COMPLETO
+        // ============================================
+        
+        // FUNCIÓN PARA CARGAR ESTADÍSTICAS DE SEGUROS
+        async function loadSegurosStats() {
+            try {
+                const { data, error } = await supabase
+                    .from('seguros_cobrados')
+                    .select('monto_seguro');
+
+                if (error) throw error;
+
+                const totalSeguros = data?.reduce((sum, seguro) => 
+                    sum + (parseFloat(seguro.monto_seguro) || 0), 0) || 0;
+
+                // Actualizar la tarjeta en el dashboard
+                const elemento = document.getElementById('totalSeguros');
+                if (elemento) {
+                    elemento.textContent = formatCurrency(totalSeguros);
+                }
+
+            } catch (error) {
+                console.error('Error cargando seguros:', error);
+                // Si hay error, mostrar $0
+                const elemento = document.getElementById('totalSeguros');
+                if (elemento) {
+                    elemento.textContent = '$0';
+                }
+            }
+        }
+
+        // CARGAR SEGUROS AL INICIAR (después de 2 segundos)
+        setTimeout(async () => {
+            await loadSegurosStats();
+        }, 2000);
+
+        // ACTUALIZAR SEGUROS CADA 30 SEGUNDOS
+        setInterval(async () => {
+            await loadSegurosStats();
+        }, 30000);
+
+        // ============================================
+        // FIN SISTEMA DE SEGUROS
+        // ============================================
     </script>
 </body>
 </html>
