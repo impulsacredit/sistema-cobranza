@@ -114,10 +114,6 @@
             margin-bottom: 2rem;
         }
 
-        .page-title-section {
-            flex: 1;
-        }
-
         .page-title {
             font-size: 2.8rem;
             color: #2d3748;
@@ -190,8 +186,6 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             border-left: 4px solid;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
 
         .stat-card:hover {
@@ -227,63 +221,6 @@
             font-size: 2.5rem;
             opacity: 0.3;
             color: #718096;
-        }
-
-        /* FILTROS */
-        .filters-section {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        }
-
-        .filters-grid {
-            display: grid;
-            grid-template-columns: 1fr auto auto auto;
-            gap: 1rem;
-            align-items: end;
-        }
-
-        .search-container {
-            position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px 16px 12px 45px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #718096;
-        }
-
-        .filter-select {
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 1rem;
-            background: white;
-            min-width: 150px;
-        }
-
-        .filter-select:focus {
-            outline: none;
-            border-color: #667eea;
         }
 
         /* TABLA */
@@ -357,24 +294,6 @@
             color: #742a2a;
         }
 
-        .category-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            background: #f1f5f9;
-            color: #4a5568;
-        }
-
-        .category-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -388,15 +307,6 @@
             font-size: 0.85rem;
             font-weight: 500;
             transition: all 0.3s ease;
-        }
-
-        .btn-view {
-            background: #e6f3ff;
-            color: #0066cc;
-        }
-
-        .btn-view:hover {
-            background: #cce7ff;
         }
 
         .btn-edit {
@@ -427,7 +337,6 @@
             height: 100%;
             background: rgba(0,0,0,0.5);
             z-index: 1000;
-            animation: fadeIn 0.3s ease;
         }
 
         .modal.show {
@@ -441,10 +350,9 @@
             border-radius: 20px;
             padding: 2rem;
             width: 90%;
-            max-width: 700px;
+            max-width: 600px;
             max-height: 90vh;
             overflow-y: auto;
-            animation: slideIn 0.3s ease;
         }
 
         .modal-header {
@@ -476,19 +384,8 @@
             color: #4a5568;
         }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
         .form-group {
             margin-bottom: 1.5rem;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
         }
 
         .form-label {
@@ -533,11 +430,10 @@
             border-top: 1px solid #e2e8f0;
         }
 
-        /* LOADING Y ESTADOS */
+        /* LOADING */
         .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: none;
+            text-align: center;
             padding: 4rem;
             color: #718096;
         }
@@ -549,19 +445,12 @@
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin-right: 20px;
+            margin: 0 auto 20px;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: #718096;
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            opacity: 0.3;
-            margin-bottom: 1rem;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         /* NOTIFICACIONES */
@@ -574,7 +463,6 @@
             color: white;
             font-weight: 600;
             z-index: 1001;
-            animation: slideInRight 0.3s ease;
             max-width: 400px;
         }
 
@@ -584,27 +472,6 @@
 
         .notification.error {
             background: linear-gradient(45deg, #f56565, #e53e3e);
-        }
-
-        /* ANIMACIONES */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         /* RESPONSIVE */
@@ -621,23 +488,6 @@
 
             .stats-row {
                 grid-template-columns: 1fr;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .filters-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            .table {
-                min-width: 800px;
             }
 
             .modal-content {
@@ -660,9 +510,9 @@
                 <li><a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="clientes.html" class="nav-link"><i class="fas fa-users"></i> Clientes</a></li>
                 <li><a href="prestamos.html" class="nav-link"><i class="fas fa-handshake"></i> Préstamos</a></li>
-                <li><a href="#" class="nav-link" onclick="proximamente('Pagos')"><i class="fas fa-credit-card"></i> Pagos</a></li>
+                <li><a href="pagos.html" class="nav-link"><i class="fas fa-credit-card"></i> Pagos</a></li>
                 <li><a href="gastos.html" class="nav-link active"><i class="fas fa-receipt"></i> Gastos</a></li>
-                <li><a href="#" class="nav-link" onclick="proximamente('Reportes')"><i class="fas fa-chart-bar"></i> Reportes</a></li>
+                <li><a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes</a></li>
             </ul>
 
             <div class="navbar-user">
@@ -678,199 +528,156 @@
     <div class="container">
         <!-- HEADER -->
         <div class="page-header">
-            <div class="page-title-section">
+            <div>
                 <h1 class="page-title">Gestión de Gastos</h1>
                 <p class="page-subtitle">Controla todos los egresos y gastos del negocio</p>
             </div>
             <div class="page-actions">
-                <button class="btn-secondary" onclick="exportGastos()">
+                <button class="btn-secondary" onclick="exportarGastos()">
                     <i class="fas fa-download"></i> Exportar
                 </button>
-                <button class="btn-primary" onclick="openAddGastoModal()">
+                <button class="btn-primary" onclick="abrirModalNuevoGasto()">
                     <i class="fas fa-plus"></i> Nuevo Gasto
                 </button>
             </div>
         </div>
 
-        <!-- ESTADÍSTICAS -->
-        <div class="stats-row">
-            <div class="stat-card danger">
-                <div class="stat-content">
-                    <div>
-                        <div class="stat-value" id="totalGastos">$0</div>
-                        <div class="stat-label">Total Gastos del Mes</div>
-                    </div>
-                    <i class="fas fa-credit-card stat-icon"></i>
-                </div>
-            </div>
-            <div class="stat-card warning">
-                <div class="stat-content">
-                    <div>
-                        <div class="stat-value" id="gastosHoy">$0</div>
-                        <div class="stat-label">Gastos de Hoy</div>
-                    </div>
-                    <i class="fas fa-calendar-day stat-icon"></i>
-                </div>
-            </div>
-            <div class="stat-card info">
-                <div class="stat-content">
-                    <div>
-                        <div class="stat-value" id="promedioGastos">$0</div>
-                        <div class="stat-label">Promedio Diario</div>
-                    </div>
-                    <i class="fas fa-chart-line stat-icon"></i>
-                </div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-content">
-                    <div>
-                        <div class="stat-value" id="categoriaTop">--</div>
-                        <div class="stat-label">Categoría con Más Gastos</div>
-                    </div>
-                    <i class="fas fa-trophy stat-icon"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- FILTROS -->
-        <div class="filters-section">
-            <div class="filters-grid">
-                <div class="search-container">
-                    <i class="fas fa-search search-icon"></i>
-                    <input 
-                        type="text" 
-                        class="search-input" 
-                        id="searchInput"
-                        placeholder="Buscar gasto..."
-                        oninput="filterGastos()"
-                    >
-                </div>
-                <select class="filter-select" id="categoriaFilter" onchange="filterGastos()">
-                    <option value="">Todas las categorías</option>
-                </select>
-                <select class="filter-select" id="estadoFilter" onchange="filterGastos()">
-                    <option value="">Todos los estados</option>
-                    <option value="activo">Activos</option>
-                    <option value="pendiente">Pendientes</option>
-                    <option value="cancelado">Cancelados</option>
-                </select>
-                <input type="month" class="filter-select" id="mesFilter" onchange="filterGastos()">
-            </div>
-        </div>
-
         <!-- LOADING -->
-        <div id="loadingGastos" class="loading">
+        <div id="loading" class="loading">
             <div class="spinner"></div>
-            <div>
-                <h3>Cargando gastos...</h3>
-                <p>Obteniendo datos de Supabase</p>
-            </div>
+            <h3>Cargando gastos...</h3>
+            <p>Conectando con Supabase...</p>
         </div>
 
-        <!-- TABLA DE GASTOS -->
-        <div id="gastosContainer" class="table-container" style="display: none;">
-            <div class="table-header">
-                <h3 class="table-title">Lista de Gastos</h3>
-                <span id="gastosCount">0 gastos</span>
+        <!-- CONTENIDO -->
+        <div id="content" style="display: none;">
+            <!-- ESTADÍSTICAS -->
+            <div class="stats-row">
+                <div class="stat-card danger">
+                    <div class="stat-content">
+                        <div>
+                            <div class="stat-value" id="totalGastos">$0</div>
+                            <div class="stat-label">Total Gastos del Mes</div>
+                        </div>
+                        <i class="fas fa-credit-card stat-icon"></i>
+                    </div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-content">
+                        <div>
+                            <div class="stat-value" id="gastosHoy">$0</div>
+                            <div class="stat-label">Gastos de Hoy</div>
+                        </div>
+                        <i class="fas fa-calendar-day stat-icon"></i>
+                    </div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-content">
+                        <div>
+                            <div class="stat-value" id="cantidadGastos">0</div>
+                            <div class="stat-label">Gastos Registrados</div>
+                        </div>
+                        <i class="fas fa-list stat-icon"></i>
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-content">
+                        <div>
+                            <div class="stat-value" id="promedioGastos">$0</div>
+                            <div class="stat-label">Promedio por Gasto</div>
+                        </div>
+                        <i class="fas fa-chart-line stat-icon"></i>
+                    </div>
+                </div>
             </div>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Descripción</th>
-                        <th>Categoría</th>
-                        <th>Monto</th>
-                        <th>Método</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="gastosTableBody">
-                    <!-- Se llena dinámicamente -->
-                </tbody>
-            </table>
+
+            <!-- TABLA DE GASTOS -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">Lista de Gastos</h3>
+                    <span id="contadorGastos">0 gastos</span>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Descripción</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaGastos">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- ESTADO VACÍO -->
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <i class="fas fa-receipt empty-icon"></i>
+        <div id="estadoVacio" style="display: none; text-align: center; padding: 4rem;">
+            <i class="fas fa-receipt" style="font-size: 4rem; opacity: 0.3; margin-bottom: 1rem;"></i>
             <h3>No hay gastos registrados</h3>
             <p>Comienza registrando el primer gasto de tu negocio</p>
-            <button class="btn-primary" onclick="openAddGastoModal()" style="margin-top: 1rem;">
+            <button class="btn-primary" onclick="abrirModalNuevoGasto()" style="margin-top: 1rem;">
                 <i class="fas fa-plus"></i> Registrar Primer Gasto
             </button>
         </div>
     </div>
 
-    <!-- MODAL NUEVO/EDITAR GASTO -->
-    <div id="gastoModal" class="modal">
+    <!-- MODAL NUEVO GASTO -->
+    <div id="modalGasto" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">Nuevo Gasto</h3>
-                <button class="btn-close" onclick="closeGastoModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h3 class="modal-title">Nuevo Gasto</h3>
+                <button class="btn-close" onclick="cerrarModal()">&times;</button>
             </div>
             
-            <form id="gastoForm" onsubmit="saveGasto(event)">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label" for="categoria_id">Categoría *</label>
-                        <select id="categoria_id" name="categoria_id" class="form-select" required>
-                            <option value="">Seleccionar categoría...</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="monto">Monto *</label>
-                        <input type="number" id="monto" name="monto" class="form-input" 
-                               min="0.01" step="0.01" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="fecha_gasto">Fecha del Gasto *</label>
-                        <input type="date" id="fecha_gasto" name="fecha_gasto" class="form-input" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="metodo_pago">Método de Pago *</label>
-                        <select id="metodo_pago" name="metodo_pago" class="form-select" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label" for="descripcion">Descripción *</label>
-                        <input type="text" id="descripcion" name="descripcion" class="form-input" 
-                               placeholder="Descripción del gasto..." required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="comprobante">Comprobante/Referencia</label>
-                        <input type="text" id="comprobante" name="comprobante" class="form-input" 
-                               placeholder="Número de factura, recibo...">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="aprobado_por">Aprobado por</label>
-                        <input type="text" id="aprobado_por" name="aprobado_por" class="form-input" 
-                               placeholder="Quien autorizó el gasto">
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <label class="form-label" for="observaciones">Observaciones</label>
-                        <textarea id="observaciones" name="observaciones" class="form-textarea" 
-                                  placeholder="Observaciones adicionales..."></textarea>
-                    </div>
+            <form id="formGasto">
+                <div class="form-group">
+                    <label class="form-label">Descripción *</label>
+                    <input type="text" id="descripcion" class="form-input" required 
+                           placeholder="Descripción del gasto...">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Monto *</label>
+                    <input type="number" id="monto" class="form-input" required 
+                           min="0.01" step="0.01" placeholder="0.00">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Fecha *</label>
+                    <input type="date" id="fechaGasto" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Método de Pago *</label>
+                    <select id="metodoPago" class="form-select" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Comprobante</label>
+                    <input type="text" id="comprobante" class="form-input" 
+                           placeholder="Número de factura o recibo...">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Observaciones</label>
+                    <textarea id="observaciones" class="form-textarea" 
+                              placeholder="Observaciones adicionales..."></textarea>
                 </div>
                 
                 <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeGastoModal()">
+                    <button type="button" class="btn-secondary" onclick="cerrarModal()">
                         Cancelar
                     </button>
-                    <button type="submit" class="btn-primary" id="saveButton">
+                    <button type="submit" class="btn-primary">
                         <i class="fas fa-save"></i> Guardar Gasto
                     </button>
                 </div>
@@ -882,15 +689,12 @@
         // VARIABLES GLOBALES
         let supabase = null;
         let gastos = [];
-        let filteredGastos = [];
-        let categorias = [];
-        let editingGastoId = null;
 
-        // INICIALIZACIÓN
+        // INICIALIZAR
         document.addEventListener('DOMContentLoaded', function() {
             // Verificar autenticación
             if (!localStorage.getItem('userLoggedIn')) {
-                window.location.href = './';
+                window.location.href = 'index.html';
                 return;
             }
 
@@ -898,20 +702,368 @@
             const username = localStorage.getItem('username') || 'Usuario';
             document.getElementById('username').textContent = username;
 
-            // Establecer fecha por defecto
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('fecha_gasto').value = today;
-            document.getElementById('mesFilter').value = today.substring(0, 7);
+            // Fecha por defecto
+            document.getElementById('fechaGasto').value = new Date().toISOString().split('T')[0];
 
-            // Inicializar Supabase
-            initSupabase();
+            // Inicializar
+            inicializarApp();
         });
 
-        // CONFIGURAR SUPABASE
-        function initSupabase() {
-            const url = localStorage.getItem('supabaseUrl');
-            const key = localStorage.getItem('supabaseKey');
+        // INICIALIZAR APLICACIÓN
+        async function inicializarApp() {
+            try {
+                // Mostrar loading
+                document.getElementById('loading').style.display = 'block';
+
+                // Configurar Supabase
+                const url = localStorage.getItem('supabaseUrl');
+                const key = localStorage.getItem('supabaseKey');
+                
+                if (!url || !key) {
+                    throw new Error('Configuración de Supabase no encontrada');
+                }
+
+                supabase = window.supabase.createClient(url, key);
+
+                // Cargar datos
+                await cargarGastos();
+
+                // Mostrar contenido
+                document.getElementById('loading').style.display = 'none';
+                
+                if (gastos.length > 0) {
+                    document.getElementById('content').style.display = 'block';
+                } else {
+                    document.getElementById('estadoVacio').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error inicializando:', error);
+                document.getElementById('loading').style.display = 'none';
+                mostrarNotificacion('Error: ' + error.message, 'error');
+            }
+        }
+
+        // CARGAR GASTOS
+        async function cargarGastos() {
+            try {
+                const { data, error } = await supabase
+                    .from('gastos_egresos')
+                    .select('*')
+                    .order('fecha_gasto', { ascending: false });
+
+                if (error) throw error;
+
+                gastos = data || [];
+                actualizarEstadisticas();
+                renderizarTabla();
+
+            } catch (error) {
+                console.error('Error cargando gastos:', error);
+                mostrarNotificacion('Error cargando gastos: ' + error.message, 'error');
+            }
+        }
+
+        // ACTUALIZAR ESTADÍSTICAS
+        function actualizarEstadisticas() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
             
-            if (!url || !key) {
-                showNotification('Sistema no configurado. Redirigiendo al login...', 'error');
-                setTimeout(() => {
+            // Gastos del mes
+            const gastosMes = gastos.filter(g => g.fecha_gasto >= inicioMes);
+            const totalMes = gastosMes.reduce((sum, g) => sum + parseFloat(g.monto), 0);
+            
+            // Gastos de hoy
+            const gastosHoy = gastos.filter(g => g.fecha_gasto === hoy);
+            const totalHoy = gastosHoy.reduce((sum, g) => sum + parseFloat(g.monto), 0);
+            
+            // Promedio
+            const promedio = gastos.length > 0 ? gastos.reduce((sum, g) => sum + parseFloat(g.monto), 0) / gastos.length : 0;
+
+            // Actualizar UI
+            document.getElementById('totalGastos').textContent = formatearMoneda(totalMes);
+            document.getElementById('gastosHoy').textContent = formatearMoneda(totalHoy);
+            document.getElementById('cantidadGastos').textContent = gastos.length;
+            document.getElementById('promedioGastos').textContent = formatearMoneda(promedio);
+        }
+
+        // RENDERIZAR TABLA
+        function renderizarTabla() {
+            const tbody = document.getElementById('tablaGastos');
+            tbody.innerHTML = '';
+
+            document.getElementById('contadorGastos').textContent = `${gastos.length} gasto${gastos.length !== 1 ? 's' : ''}`;
+
+            gastos.forEach(gasto => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${new Date(gasto.fecha_gasto).toLocaleDateString('es-EC')}</td>
+                    <td>
+                        <div style="font-weight: 600;">${gasto.descripcion}</div>
+                        ${gasto.comprobante ? `<div style="font-size: 0.85rem; color: #718096;">Comp: ${gasto.comprobante}</div>` : ''}
+                    </td>
+                    <td style="font-weight: 700;">${formatearMoneda(gasto.monto)}</td>
+                    <td style="text-transform: capitalize;">${gasto.metodo_pago || 'N/A'}</td>
+                    <td><span class="status-badge status-${gasto.estado}">${gasto.estado}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-edit" onclick="editarGasto('${gasto.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="eliminarGasto('${gasto.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // ABRIR MODAL NUEVO GASTO
+        function abrirModalNuevoGasto() {
+            document.getElementById('modalGasto').classList.add('show');
+            document.getElementById('formGasto').reset();
+            document.getElementById('fechaGasto').value = new Date().toISOString().split('T')[0];
+        }
+
+        // CERRAR MODAL
+        function cerrarModal() {
+            document.getElementById('modalGasto').classList.remove('show');
+        }
+
+        // GUARDAR GASTO
+        document.getElementById('formGasto').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const gastoData = {
+                descripcion: document.getElementById('descripcion').value,
+                monto: parseFloat(document.getElementById('monto').value),
+                fecha_gasto: document.getElementById('fechaGasto').value,
+                metodo_pago: document.getElementById('metodoPago').value,
+                comprobante: document.getElementById('comprobante').value || null,
+                observaciones: document.getElementById('observaciones').value || null,
+                estado: 'pendiente',
+                tipo_gasto: 'operativo'
+            };
+
+            try {
+                const { data, error } = await supabase
+                    .from('gastos_egresos')
+                    .insert([gastoData])
+                    .select();
+
+                if (error) throw error;
+
+                mostrarNotificacion('Gasto registrado exitosamente', 'success');
+                cerrarModal();
+                await cargarGastos();
+                
+                // Mostrar contenido si era el primer gasto
+                if (gastos.length === 1) {
+                    document.getElementById('estadoVacio').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error guardando gasto:', error);
+                mostrarNotificacion('Error guardando gasto: ' + error.message, 'error');
+            }
+        });
+
+        // EDITAR GASTO
+        function editarGasto(id) {
+            mostrarNotificacion('Función de edición próximamente', 'error');
+        }
+
+        // ELIMINAR GASTO
+        async function eliminarGasto(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('gastos_egresos')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                mostrarNotificacion('Gasto eliminado exitosamente', 'success');
+                await cargarGastos();
+                
+                // Si no hay gastos, mostrar estado vacío
+                if (gastos.length === 0) {
+                    document.getElementById('content').style.display = 'none';
+                    document.getElementById('estadoVacio').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error eliminando gasto:', error);
+                mostrarNotificacion('Error eliminando gasto: ' + error.message, 'error');
+            }
+        }
+
+        // EXPORTAR GASTOS
+        function exportarGastos() {
+            if (gastos.length === 0) {
+                mostrarNotificacion('No hay gastos para exportar', 'error');
+                return;
+            }
+
+            // Crear CSV
+            const headers = ['Fecha', 'Descripción', 'Monto', 'Método', 'Estado', 'Comprobante'];
+            const csvContent = [
+                headers.join(','),
+                ...gastos.map(gasto => [
+                    gasto.fecha_gasto,
+                    `"${gasto.descripcion}"`,
+                    gasto.monto,
+                    gasto.metodo_pago || '',
+                    gasto.estado,
+                    `"${gasto.comprobante || ''}"`
+                ].join(','))
+            ].join('\n');
+
+            // Descargar archivo
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `gastos_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            mostrarNotificacion(`Se exportaron ${gastos.length} gastos exitosamente`, 'success');
+        }
+
+        // FORMATEAR MONEDA
+        function formatearMoneda(amount) {
+            return new Intl.NumberFormat('es-EC', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${tipo}`;
+            notification.innerHTML = `
+                <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+                ${mensaje}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 4000);
+        }
+
+        // LOGOUT
+        function logout() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('username');
+                localStorage.removeItem('loginTime');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // CERRAR MODAL AL HACER CLIC FUERA
+        document.getElementById('modalGasto').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModal();
+            }
+        });
+
+        // CERRAR MODAL CON ESCAPE
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                cerrarModal();
+            }
+        });
+
+        // VALIDACIONES DE FORMULARIO
+        document.getElementById('monto').addEventListener('input', function(e) {
+            if (parseFloat(e.target.value) < 0) {
+                e.target.value = '';
+            }
+        });
+
+        document.getElementById('fechaGasto').addEventListener('change', function(e) {
+            const selectedDate = new Date(e.target.value);
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+            
+            if (selectedDate > today) {
+                mostrarNotificacion('La fecha del gasto no puede ser futura', 'error');
+                e.target.value = new Date().toISOString().split('T')[0];
+            }
+        });
+
+        // AUTO-REFRESH CADA 2 MINUTOS
+        setInterval(async () => {
+            await cargarGastos();
+        }, 120000);
+
+        // ATAJOS DE TECLADO
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + N = Nuevo gasto
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                abrirModalNuevoGasto();
+            }
+            
+            // Ctrl + E = Exportar
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                exportarGastos();
+            }
+        });
+
+        // FORMATEAR MONTO AL PERDER FOCO
+        document.getElementById('monto').addEventListener('blur', function(e) {
+            if (e.target.value) {
+                const value = parseFloat(e.target.value);
+                if (!isNaN(value)) {
+                    e.target.value = value.toFixed(2);
+                }
+            }
+        });
+
+        // VALIDACIÓN ADICIONAL DEL FORMULARIO
+        document.getElementById('formGasto').addEventListener('submit', function(e) {
+            const monto = parseFloat(document.getElementById('monto').value);
+            const descripcion = document.getElementById('descripcion').value.trim();
+
+            if (monto <= 0) {
+                e.preventDefault();
+                mostrarNotificacion('El monto debe ser mayor a cero', 'error');
+                return;
+            }
+
+            if (descripcion.length < 3) {
+                e.preventDefault();
+                mostrarNotificacion('La descripción debe tener al menos 3 caracteres', 'error');
+                return;
+            }
+        });
+
+        // MENSAJE DE BIENVENIDA
+        setTimeout(() => {
+            if (gastos.length === 0) {
+                mostrarNotificacion('¡Bienvenido al módulo de gastos! Comienza registrando tu primer gasto.', 'success');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
