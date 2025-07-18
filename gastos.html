@@ -1217,64 +1217,78 @@
             }
         }
 
-        // CARGAR SALDO DE CAJA
-        async function cargarSaldoCaja() {
-            try {
-                // Obtener inversiones
-                const { data: inversionesData } = await supabase
-                    .from('inversiones')
-                    .select('monto')
-                    .eq('estado', 'activo');
+       // CARGAR SALDO DE CAJA - VERSIÓN SINCRONIZADA CON DASHBOARD
+async function cargarSaldoCaja() {
+    try {
+        // 1️⃣ OBTENER EL SALDO BASE DEL DASHBOARD (Inversiones + Cobrado - Prestado)
+        
+        // Obtener inversiones
+        const { data: inversionesData } = await supabase
+            .from('inversiones')
+            .select('monto')
+            .eq('estado', 'activo');
 
-                const totalInversiones = inversionesData?.reduce((sum, inv) => 
-                    sum + (parseFloat(inv.monto) || 0), 0) || 0;
+        const totalInversiones = inversionesData?.reduce((sum, inv) => 
+            sum + (parseFloat(inv.monto) || 0), 0) || 0;
 
-                // Obtener préstamos activos
-                const { data: prestamosData } = await supabase
-                    .from('creditos')
-                    .select('monto_prestamo')
-                    .eq('estado', 'activo');
+        // Obtener préstamos activos
+        const { data: prestamosData } = await supabase
+            .from('creditos')
+            .select('monto_prestamo')
+            .eq('estado', 'activo');
 
-                const totalPrestado = prestamosData?.reduce((sum, credito) => 
-                    sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
+        const totalPrestado = prestamosData?.reduce((sum, credito) => 
+            sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
 
-                // Obtener pagos cobrados
-                const { data: pagosData } = await supabase
-                    .from('pagos')
-                    .select('monto_pagado');
+        // Obtener pagos cobrados
+        const { data: pagosData } = await supabase
+            .from('pagos')
+            .select('monto_pagado');
 
-                const totalCobrado = pagosData?.reduce((sum, pago) => 
-                    sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
+        const totalCobrado = pagosData?.reduce((sum, pago) => 
+            sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
 
-                // Obtener gastos pagados
-                const { data: gastosData } = await supabase
-                    .from('gastos_egresos')
-                    .select('monto')
-                    .eq('estado', 'pagado');
+        // 2️⃣ CALCULAR SALDO BASE (IGUAL QUE EN DASHBOARD)
+        const saldoBaseDashboard = totalInversiones + totalCobrado - totalPrestado;
 
-                const totalGastos = gastosData?.reduce((sum, gasto) => 
-                    sum + (parseFloat(gasto.monto) || 0), 0) || 0;
+        // 3️⃣ OBTENER SOLO LOS GASTOS PAGADOS PARA RESTAR
+        const { data: gastosData } = await supabase
+            .from('gastos_egresos')
+            .select('monto')
+            .eq('estado', 'pagado');
 
-                // Calcular saldo
-                const saldoCaja = totalInversiones + totalCobrado - totalPrestado - totalGastos;
+        const totalGastos = gastosData?.reduce((sum, gasto) => 
+            sum + (parseFloat(gasto.monto) || 0), 0) || 0;
 
-                // Actualizar UI
-                const saldoElement = document.getElementById('saldoCajaDisplay');
-                saldoElement.textContent = formatearMoneda(saldoCaja);
+        // 4️⃣ SALDO FINAL = SALDO DASHBOARD - GASTOS
+        const saldoCajaFinal = saldoBaseDashboard - totalGastos;
 
-                // Cambiar color según saldo
-                if (saldoCaja < 0) {
-                    saldoElement.className = 'balance-amount negative';
-                } else if (saldoCaja < 1000) {
-                    saldoElement.className = 'balance-amount warning';
-                } else {
-                    saldoElement.className = 'balance-amount';
-                }
+        // 5️⃣ ACTUALIZAR UI
+        const saldoElement = document.getElementById('saldoCajaDisplay');
+        saldoElement.textContent = formatearMoneda(saldoCajaFinal);
 
-            } catch (error) {
-                console.error('Error cargando saldo:', error);
-            }
+        // 6️⃣ CAMBIAR COLOR SEGÚN SALDO
+        if (saldoCajaFinal < 0) {
+            saldoElement.className = 'balance-amount negative';
+        } else if (saldoCajaFinal < 1000) {
+            saldoElement.className = 'balance-amount warning';
+        } else {
+            saldoElement.className = 'balance-amount';
         }
+
+        // 7️⃣ GUARDAR PARA SINCRONIZACIÓN
+        localStorage.setItem('saldoCajaActual', saldoCajaFinal.toString());
+
+        console.log('💰 Saldo calculado:');
+        console.log('- Saldo base (dashboard):', formatearMoneda(saldoBaseDashboard));
+        console.log('- Total gastos:', formatearMoneda(totalGastos));
+        console.log('- Saldo final:', formatearMoneda(saldoCajaFinal));
+
+    } catch (error) {
+        console.error('Error cargando saldo:', error);
+        mostrarNotificacion('⚠️ Error calculando saldo de caja', 'warning');
+    }
+}
 
         // CARGAR CATEGORÍAS
         async function cargarCategorias() {
