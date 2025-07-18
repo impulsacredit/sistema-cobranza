@@ -2058,7 +2058,7 @@
             }
 
             if (monto > 100000) {
-                if (!confirm('⚠️ El monto es muy alto ( + monto.toLocaleString() + '). ¿Estás seguro?')) {
+                if (!confirm('⚠️ El monto es muy alto ($' + monto.toLocaleString() + '). ¿Estás seguro?')) {
                     e.preventDefault();
                     return;
                 }
