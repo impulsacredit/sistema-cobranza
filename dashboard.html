@@ -1240,6 +1240,21 @@ async function loadMainStats() {
         // ============================================
         // FIN SISTEMA DE SEGUROS
         // ============================================
+        // ESCUCHAR CAMBIOS DE GASTOS DESDE OTROS MÓDULOS
+window.addEventListener('storage', function(e) {
+    if (e.key === 'gastoModificado') {
+        // Actualizar dashboard cuando se registre un gasto
+        console.log('🔄 Gasto detectado, actualizando dashboard...');
+        setTimeout(() => {
+            loadMainStatsConGastos(); // Llamar la función mejorada
+        }, 1000);
+    }
+});
+
+// VERIFICAR CAMBIOS DE GASTOS CADA 30 SEGUNDOS
+setInterval(async () => {
+    await loadMainStatsConGastos();
+}, 30000);
     </script>
 </body>
 </html>
