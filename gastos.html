@@ -1632,9 +1632,23 @@ async function cargarSaldoCaja() {
             const formData = new FormData(event.target);
             const estado = formData.get('estado');
             
-            const gastoData = {
-                descripcion: formData.get('descripcion'),
-                monto: parseFloat(formData.get('monto')),
+            const monto = parseFloat(formData.get('monto'));
+
+// 🔍 VALIDAR SALDO ANTES DE GUARDAR (solo si es pagado)
+if (estado === 'pagado') {
+    const puedeGastar = await validarSaldoParaGasto(monto);
+    if (!puedeGastar) {
+        // Restaurar botón y salir
+        const btnGuardar = document.getElementById('btnGuardar');
+        btnGuardar.innerHTML = '<i class="fas fa-save"></i> Guardar Gasto';
+        btnGuardar.disabled = false;
+        return;
+    }
+}
+
+const gastoData = {
+    descripcion: formData.get('descripcion'),
+    monto: monto,
                 fecha_gasto: formData.get('fecha_gasto'),
                 categoria_id: formData.get('categoria_id') || null,
                 metodo_pago: formData.get('metodo_pago'),
@@ -1753,6 +1767,14 @@ async function cargarSaldoCaja() {
         // CONFIRMAR PAGO
         async function confirmarPago() {
             if (!gastoParaPagar) return;
+            // 🔍 VALIDAR SALDO ANTES DE CONFIRMAR PAGO
+const puedeGastar = await validarSaldoParaGasto(gastoParaPagar.monto);
+if (!puedeGastar) {
+    return; // Cancelar si no acepta gastar
+}
+
+try {
+    // Mostrar estado de carga
 
             try {
                 // Mostrar estado de carga
@@ -2136,6 +2158,33 @@ async function cargarSaldoCaja() {
             
             💡 Desarrollado por el equipo CobraSystem
         `);
+        // FUNCIÓN PARA VALIDAR SALDO ANTES DE GASTAR
+async function validarSaldoParaGasto(montoGasto) {
+    try {
+        // Obtener saldo actual
+        await cargarSaldoCaja();
+        const saldoActual = parseFloat(localStorage.getItem('saldoCajaActual')) || 0;
+        
+        if (montoGasto > saldoActual) {
+            const diferencia = montoGasto - saldoActual;
+            
+            return confirm(
+                '⚠️ ADVERTENCIA: Saldo insuficiente\n\n' +
+                '💰 Saldo disponible: ' + formatearMoneda(saldoActual) + '\n' +
+                '💸 Gasto a registrar: ' + formatearMoneda(montoGasto) + '\n' +
+                '📉 Faltante: ' + formatearMoneda(diferencia) + '\n\n' +
+                '¿Deseas continuar de todas formas?\n' +
+                '(Esto dejará el saldo en negativo)'
+            );
+        }
+        
+        return true; // Saldo suficiente
+        
+    } catch (error) {
+        console.error('Error validando saldo:', error);
+        return true; // En caso de error, permitir continuar
+    }
+}
     </script>
 </body>
 </html>
