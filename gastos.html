@@ -1981,9 +1981,10 @@ try {
         function actualizarDashboardEnTiempoReal() {
             // Comunicación entre pestañas
             localStorage.setItem('gastoModificado', Date.now().toString());
+            console.log('💰 Notificando cambio de gasto al dashboard...');
         }
 
-        // FORMATEAR MONEDA
+                // FORMATEAR MONEDA
         function formatearMoneda(amount) {
             return new Intl.NumberFormat('es-EC', {
                 style: 'currency',
