@@ -892,15 +892,16 @@ async function loadMainStats() {
         const pagosHoy = pagosHoyData?.reduce((sum, pago) => 
             sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
 
-        // ✅ GASTOS (si tienes tabla de gastos)
-        // const { data: gastosData } = await supabase
-        //     .from('gastos')
-        //     .select('monto');
-        // const totalGastos = gastosData?.reduce((sum, gasto) => 
-        //     sum + (parseFloat(gasto.monto) || 0), 0) || 0;
-        const totalGastos = 0; // Por ahora en 0, agregarás después
+       // ✅ AGREGAR CÁLCULO DE GASTOS PAGADOS
+        const { data: gastosData } = await supabase
+            .from('gastos_egresos')
+            .select('monto')
+            .eq('estado', 'pagado'); // Solo gastos que afectan la caja
 
-        // ✅ TU FÓRMULA: SALDO EN CAJA
+        const totalGastos = gastosData?.reduce((sum, gasto) => 
+            sum + (parseFloat(gasto.monto) || 0), 0) || 0;
+  
+       // ✅ TU FÓRMULA: SALDO EN CAJA
        const saldoCaja = totalInversiones + totalCobrado - totalPrestado - totalGastos;
         // ✅ TOTAL CARTERA = TOTALCOBRAR - TOTAL  COBRADO
         const totalCartera = totalACobrar - totalCobrado;
@@ -913,6 +914,7 @@ async function loadMainStats() {
         document.getElementById('pagosHoy').textContent = formatCurrency(pagosHoy);
         document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja); // Tu fórmula
         document.getElementById('capitalDisponible').textContent = formatCurrency(capitalDisponible);
+        document.getElementById('saldoCaja').textContent = formatCurrency(saldoCaja);
 
         // Cambiar color según disponibilidad de capital
         const capitalElement = document.getElementById('capitalDisponible');
@@ -926,6 +928,19 @@ async function loadMainStats() {
             capitalElement.style.color = '#48bb78';
             document.getElementById('capitalChange').textContent = 'Para préstamos';
         }
+        // Cambiar color según el saldo
+        const saldoElement = document.getElementById('saldoCaja');
+        if (saldoCaja < 0) {
+            saldoElement.style.color = '#f56565';
+            document.getElementById('cajaChange').textContent = 'Saldo negativo';
+        } else if (saldoCaja < 500) {
+            saldoElement.style.color = '#ed8936';
+            document.getElementById('cajaChange').textContent = 'Saldo bajo';
+        } else {
+            saldoElement.style.color = '#48bb78';
+            document.getElementById('cajaChange').textContent = 'Disponible';
+        }
+
 
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
