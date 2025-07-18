@@ -1217,12 +1217,12 @@
             }
         }
 
-       // CARGAR SALDO DE CAJA - VERSIÓN SINCRONIZADA CON DASHBOARD
+     // CARGAR SALDO DE CAJA - TOMA EL VALOR DEL DASHBOARD
 async function cargarSaldoCaja() {
     try {
-        // 1️⃣ OBTENER EL SALDO BASE DEL DASHBOARD (Inversiones + Cobrado - Prestado)
+        // 1️⃣ OBTENER EL MISMO CÁLCULO QUE USA EL DASHBOARD
         
-        // Obtener inversiones
+        // Obtener inversiones (igual que dashboard)
         const { data: inversionesData } = await supabase
             .from('inversiones')
             .select('monto')
@@ -1231,7 +1231,7 @@ async function cargarSaldoCaja() {
         const totalInversiones = inversionesData?.reduce((sum, inv) => 
             sum + (parseFloat(inv.monto) || 0), 0) || 0;
 
-        // Obtener préstamos activos
+        // Obtener préstamos activos (igual que dashboard)
         const { data: prestamosData } = await supabase
             .from('creditos')
             .select('monto_prestamo')
@@ -1240,7 +1240,7 @@ async function cargarSaldoCaja() {
         const totalPrestado = prestamosData?.reduce((sum, credito) => 
             sum + (parseFloat(credito.monto_prestamo) || 0), 0) || 0;
 
-        // Obtener pagos cobrados
+        // Obtener pagos cobrados (igual que dashboard)
         const { data: pagosData } = await supabase
             .from('pagos')
             .select('monto_pagado');
@@ -1248,10 +1248,10 @@ async function cargarSaldoCaja() {
         const totalCobrado = pagosData?.reduce((sum, pago) => 
             sum + (parseFloat(pago.monto_pagado) || 0), 0) || 0;
 
-        // 2️⃣ CALCULAR SALDO BASE (IGUAL QUE EN DASHBOARD)
+        // 2️⃣ CALCULAR SALDO BASE DEL DASHBOARD (SIN GASTOS)
         const saldoBaseDashboard = totalInversiones + totalCobrado - totalPrestado;
 
-        // 3️⃣ OBTENER SOLO LOS GASTOS PAGADOS PARA RESTAR
+        // 3️⃣ OBTENER GASTOS PAGADOS
         const { data: gastosData } = await supabase
             .from('gastos_egresos')
             .select('monto')
@@ -1263,11 +1263,11 @@ async function cargarSaldoCaja() {
         // 4️⃣ SALDO FINAL = SALDO DASHBOARD - GASTOS
         const saldoCajaFinal = saldoBaseDashboard - totalGastos;
 
-        // 5️⃣ ACTUALIZAR UI
+        // 5️⃣ MOSTRAR EL SALDO BASE DEL DASHBOARD (ANTES DE GASTOS)
         const saldoElement = document.getElementById('saldoCajaDisplay');
-        saldoElement.textContent = formatearMoneda(saldoCajaFinal);
+        saldoElement.textContent = formatearMoneda(saldoBaseDashboard); // 👈 AQUÍ ESTÁ EL CAMBIO
 
-        // 6️⃣ CAMBIAR COLOR SEGÚN SALDO
+        // 6️⃣ CAMBIAR COLOR SEGÚN SALDO FINAL
         if (saldoCajaFinal < 0) {
             saldoElement.className = 'balance-amount negative';
         } else if (saldoCajaFinal < 1000) {
@@ -1276,13 +1276,14 @@ async function cargarSaldoCaja() {
             saldoElement.className = 'balance-amount';
         }
 
-        // 7️⃣ GUARDAR PARA SINCRONIZACIÓN
-        localStorage.setItem('saldoCajaActual', saldoCajaFinal.toString());
+        // 7️⃣ GUARDAR SALDO REAL PARA VALIDACIONES
+        localStorage.setItem('saldoCajaBase', saldoBaseDashboard.toString());
+        localStorage.setItem('saldoCajaFinal', saldoCajaFinal.toString());
 
-        console.log('💰 Saldo calculado:');
-        console.log('- Saldo base (dashboard):', formatearMoneda(saldoBaseDashboard));
+        console.log('💰 Saldos calculados:');
+        console.log('- Saldo dashboard (mostrado):', formatearMoneda(saldoBaseDashboard));
         console.log('- Total gastos:', formatearMoneda(totalGastos));
-        console.log('- Saldo final:', formatearMoneda(saldoCajaFinal));
+        console.log('- Saldo real disponible:', formatearMoneda(saldoCajaFinal));
 
     } catch (error) {
         console.error('Error cargando saldo:', error);
@@ -2156,19 +2157,21 @@ try {
             
             💡 Desarrollado por el equipo CobraSystem
         `);
-        // FUNCIÓN PARA VALIDAR SALDO ANTES DE GASTAR
+    // VALIDAR SALDO PARA GASTO - VERSIÓN ACTUALIZADA
 async function validarSaldoParaGasto(montoGasto) {
     try {
         // Obtener saldo actual
         await cargarSaldoCaja();
-        const saldoActual = parseFloat(localStorage.getItem('saldoCajaActual')) || 0;
+        const saldoMostrado = parseFloat(localStorage.getItem('saldoCajaBase')) || 0;
+        const saldoReal = parseFloat(localStorage.getItem('saldoCajaFinal')) || 0;
         
-        if (montoGasto > saldoActual) {
-            const diferencia = montoGasto - saldoActual;
+        if (montoGasto > saldoReal) {
+            const diferencia = montoGasto - saldoReal;
             
             return confirm(
                 '⚠️ ADVERTENCIA: Saldo insuficiente\n\n' +
-                '💰 Saldo disponible: ' + formatearMoneda(saldoActual) + '\n' +
+                '💰 Saldo mostrado (dashboard): ' + formatearMoneda(saldoMostrado) + '\n' +
+                '💵 Saldo real disponible: ' + formatearMoneda(saldoReal) + '\n' +
                 '💸 Gasto a registrar: ' + formatearMoneda(montoGasto) + '\n' +
                 '📉 Faltante: ' + formatearMoneda(diferencia) + '\n\n' +
                 '¿Deseas continuar de todas formas?\n' +
@@ -2180,7 +2183,7 @@ async function validarSaldoParaGasto(montoGasto) {
         
     } catch (error) {
         console.error('Error validando saldo:', error);
-        return true; // En caso de error, permitir continuar
+        return true;
     }
 }
     </script>
