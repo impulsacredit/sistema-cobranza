@@ -1283,22 +1283,6 @@
                 clearCalculations();
             }
            
-        // Calcular interés simple
-        const tasaDecimal = tasa / 100;
-        const montoTotal = monto * (1 + tasaDecimal);
-        const montoCuota = montoTotal / cuotas;
-
-        // Calcular fecha de vencimiento
-        const fechaVencimiento = calculateEndDate(new Date(fechaInicio), cuotas, frecuencia);
-
-        // Actualizar UI
-        document.getElementById('calc_monto_prestamo').textContent = formatCurrency(monto);
-        document.getElementById('calc_monto_total').textContent = formatCurrency(montoTotal);
-        document.getElementById('calc_monto_cuota').textContent = formatCurrency(montoCuota);
-        document.getElementById('calc_fecha_vencimiento').textContent = fechaVencimiento.toLocaleDateString('es-EC');
-    } else {
-        clearCalculations();
-    }
     
     // Calcular y mostrar seguro
     const montoSeguro = parseFloat(document.getElementById('monto_seguro').value) || 0;
