@@ -1041,8 +1041,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label">🏷️ Categoría *</label>
-                        <select id="categoriaId" name="categoria_id" class="form-select" required>
+                        <label class="form-label">🏷️ Categoría</label>
+                        <select id="categoriaId" name="categoria_id" class="form-select">
                             <option value="">Seleccionar categoría...</option>
                         </select>
                     </div>
@@ -1311,21 +1311,53 @@
 
             } catch (error) {
                 console.error('Error cargando categorías:', error);
-                mostrarNotificacion('⚠️ Error cargando categorías', 'warning');
+                // Si no existe la tabla, crear categorías por defecto
+                mostrarNotificacion('⚠️ Tabla categorias_gastos no encontrada, usando categorías por defecto', 'warning');
+                crearCategoriasDefault();
             }
         }
 
-        // CARGAR GASTOS
+        // CREAR CATEGORÍAS POR DEFECTO
+        function crearCategoriasDefault() {
+            const categoriasDefault = [
+                { id: 1, nombre: 'Servicios Públicos' },
+                { id: 2, nombre: 'Alquiler' },
+                { id: 3, nombre: 'Transporte' },
+                { id: 4, nombre: 'Alimentación' },
+                { id: 5, nombre: 'Suministros' },
+                { id: 6, nombre: 'Marketing' },
+                { id: 7, nombre: 'Personal' },
+                { id: 8, nombre: 'Impuestos' },
+                { id: 9, nombre: 'Otros' }
+            ];
+
+            const categoriaSelect = document.getElementById('categoriaId');
+            const categoriaFilter = document.getElementById('categoriaFilter');
+            
+            categoriaSelect.innerHTML = '<option value="">Seleccionar categoría...</option>';
+            categoriaFilter.innerHTML = '<option value="">Todas las categorías</option>';
+            
+            categoriasDefault.forEach(categoria => {
+                const option1 = document.createElement('option');
+                const option2 = document.createElement('option');
+                
+                option1.value = categoria.nombre; // Usar nombre en lugar de ID
+                option1.textContent = categoria.nombre;
+                
+                option2.value = categoria.nombre;
+                option2.textContent = categoria.nombre;
+                
+                categoriaSelect.appendChild(option1);
+                categoriaFilter.appendChild(option2);
+            });
+        }
+
+        // CARGAR GASTOS - AJUSTADO A TU ESTRUCTURA
         async function cargarGastos() {
             try {
                 const { data, error } = await supabase
                     .from('gastos_egresos')
-                    .select(`
-                        *,
-                        categorias_gastos (
-                            nombre
-                        )
-                    `)
+                    .select('*')
                     .order('fecha_gasto', { ascending: false });
 
                 if (error) throw error;
@@ -1342,7 +1374,7 @@
             }
         }
 
-        // ACTUALIZAR ESTADÍSTICAS
+        // ACTUALIZAR ESTADÍSTICAS - AJUSTADO A TUS CAMPOS
         function actualizarEstadisticas() {
             const hoy = new Date().toISOString().split('T')[0];
             const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -1367,17 +1399,17 @@
             const promedio = gastosPagados.length > 0 ? 
                 gastosPagados.reduce((sum, g) => sum + parseFloat(g.monto), 0) / gastosPagados.length : 0;
 
-            // Categoría top
+            // Categoría top - usando el campo categoria_id de tu tabla
             const categoriaStats = {};
             gastosPagados.forEach(gasto => {
-                const categoria = gasto.categorias_gastos?.nombre || 'Sin categoría';
+                const categoria = gasto.categoria_id || 'Sin categoría';
                 categoriaStats[categoria] = (categoriaStats[categoria] || 0) + parseFloat(gasto.monto);
             });
             
             const categoriaTop = Object.keys(categoriaStats).length > 0 ? 
                 Object.keys(categoriaStats).reduce((a, b) => 
                     categoriaStats[a] > categoriaStats[b] ? a : b
-                ) : '-';
+                ) : 'Sin datos';
 
             // Actualizar UI
             document.getElementById('totalGastosMes').textContent = formatearMoneda(totalMes);
@@ -1393,7 +1425,7 @@
             document.getElementById('porcentajeTop').textContent = porcentaje;
         }
 
-        // RENDERIZAR TABLA
+        // RENDERIZAR TABLA - AJUSTADO A TU ESTRUCTURA
         function renderizarTabla() {
             const tbody = document.getElementById('tablaGastos');
             tbody.innerHTML = '';
@@ -1443,7 +1475,7 @@
                     </td>
                     <td>
                         <span class="category-badge">
-                            ${gasto.categorias_gastos?.nombre || 'Sin categoría'}
+                            ${gasto.categoria_id || 'Sin categoría'}
                         </span>
                     </td>
                     <td style="text-transform: capitalize;">
@@ -1485,7 +1517,7 @@
             return iconos[estado] || '📋';
         }
 
-        // FILTRAR GASTOS
+        // FILTRAR GASTOS - AJUSTADO A TU ESTRUCTURA
         function filtrarGastos() {
             const busqueda = document.getElementById('searchInput').value.toLowerCase();
             const estado = document.getElementById('estadoFilter').value;
@@ -1501,7 +1533,11 @@
                     (gasto.observaciones && gasto.observaciones.toLowerCase().includes(busqueda));
                 
                 const cumpleEstado = !estado || gasto.estado === estado;
-                const cumpleCategoria = !categoria || gasto.categoria_id == categoria;
+                
+                // Comparar por nombre de categoría en lugar de ID
+                const cumpleCategoria = !categoria || 
+                    (gasto.categoria_id && gasto.categoria_id.toString() === categoria.toString());
+                
                 const cumpleMetodo = !metodo || gasto.metodo_pago === metodo;
                 
                 const cumpleFecha = (!fechaDesde || gasto.fecha_gasto >= fechaDesde) &&
